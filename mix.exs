@@ -44,6 +44,8 @@ defmodule FuelCalculator.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:phoenix_ecto, "~> 4.0"},
+      {:ecto, "~> 3.0"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:tidewave, "~> 0.9", only: :dev},
