@@ -1,9 +1,41 @@
+# FuelCalculator
+
+Interplanetary fuel calculator built with Phoenix LiveView. The full specification
+is in `docs/CHALLENGE.md`; read it before planning or implementing features.
+
+## Stack
+
+- Elixir 1.20.4 / OTP 29.1.2 (pinned in `.tool-versions`)
+- Phoenix 1.8.16, LiveView 1.2, Tailwind v4 + daisyUI
+- No database (generated with `--no-ecto --no-mailer`)
+
+## Commands
+
+- `mix setup` — install dependencies and build assets
+- `mix phx.server` — run the app at http://localhost:4000
+- `mix precommit` — compile (warnings as errors), unlock unused deps, format, `credo --strict`, test
+- `mix dialyzer` — static type analysis (first run builds the PLT in `priv/plts/`)
+
+CI (`.github/workflows/ci.yml`) runs the same checks plus Dialyzer on every push.
+
+In development, a Tidewave MCP server is available at http://localhost:4000/tidewave/mcp
+while `mix phx.server` is running.
+
+## Project conventions
+
+- Never convert user input to atoms with `String.to_atom/1`; map known values
+  explicitly (e.g. `"earth"` → `:earth`) or use `String.to_existing_atom/1`
+- Never render untrusted content with `raw/1`
+- Don't introduce processes (GenServer, Agent, Task) without a runtime reason
+  (concurrency, state or isolation); pure functions are the default
+- Comments describe durable facts (quirks, footguns), not change history;
+  reasoning goes in commit messages
+
 This is a web application written using the Phoenix web framework.
 
 ## Project guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
-- Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 
 ### Phoenix v1.8 guidelines
 

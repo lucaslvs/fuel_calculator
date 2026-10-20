@@ -1,18 +1,33 @@
 # FuelCalculator
 
-To start your Phoenix server:
+[![CI](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml)
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+A Phoenix LiveView application that calculates the fuel required for interplanetary
+flight paths (launches and landings on Earth, Moon and Mars).
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+See [`docs/CHALLENGE.md`](docs/CHALLENGE.md) for the full challenge description.
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+## Requirements
 
-## Learn more
+- Erlang/OTP 29.1.2 and Elixir 1.20.4 (pinned in `.tool-versions`; works with
+  [mise](https://mise.jdx.dev) or [asdf](https://asdf-vm.com))
+- No database required
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+## Getting started
+
+```sh
+mise install        # or: asdf install
+mix setup
+mix phx.server
+```
+
+Then open [`localhost:4000`](http://localhost:4000).
+
+## Quality checks
+
+```sh
+mix precommit   # compile --warnings-as-errors, format, credo --strict, test
+mix dialyzer    # static type analysis
+```
+
+The same checks run on every push via GitHub Actions.
