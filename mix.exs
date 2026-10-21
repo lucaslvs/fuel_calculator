@@ -12,6 +12,18 @@ defmodule FuelCalculator.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
+      test_coverage: [
+        summary: [threshold: 90],
+        ignore_modules: [
+          FuelCalculator.Application,
+          FuelCalculatorWeb,
+          FuelCalculatorWeb.CoreComponents,
+          FuelCalculatorWeb.Gettext,
+          FuelCalculatorWeb.Layouts,
+          FuelCalculatorWeb.Telemetry,
+          FuelCalculatorWeb.ConnCase
+        ]
+      ],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/project.plt"},
         plt_add_apps: [:mix, :ex_unit]
