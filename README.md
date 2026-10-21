@@ -1,6 +1,7 @@
 # FuelCalculator
 
 [![CI](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/lucaslvs/92a585ac99ba97b6bca7818f6e6da8f9/raw/fuel_calculator-coverage.json)](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml)
 
 A Phoenix LiveView application that calculates the fuel required for interplanetary
 flight paths (launches and landings on Earth, Moon and Mars).
