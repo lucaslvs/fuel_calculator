@@ -35,3 +35,6 @@ fuel_calculator-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Dialyzer PLTs
+/priv/plts/
