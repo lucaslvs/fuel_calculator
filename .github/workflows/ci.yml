@@ -44,4 +44,33 @@ jobs:
       - run: mix deps.unlock --check-unused
       - run: mix credo --strict
       - run: mix test
+
+      # Not enforced yet: `mix test --cover` exits non-zero below the threshold.
+      - name: Run tests with coverage
+        continue-on-error: true
+        run: mix test --cover | tee coverage.txt
+
+      - name: Extract coverage
+        id: coverage
+        run: |
+          echo "percent=$(grep -E '\| Total' coverage.txt | grep -oE '[0-9]+\.[0-9]+')" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Test coverage"
+            echo
+            sed -n '/| Percentage/,/| Total/p' coverage.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: schneegans/dynamic-badges-action@v1.9.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 92a585ac99ba97b6bca7818f6e6da8f9
+          filename: fuel_calculator-coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.percent }}%
+          valColorRange: ${{ steps.coverage.outputs.percent }}
+          minColorRange: 50
+          maxColorRange: 90
+
       - run: mix dialyzer --format github
