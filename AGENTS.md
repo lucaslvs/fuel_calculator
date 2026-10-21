@@ -38,6 +38,14 @@ while `mix phx.server` is running.
   `core_components.ex`; use plain Tailwind utilities only for layout and
   fine-tuning (overrides the "no daisyUI" guideline below)
 
+## Git workflow
+
+- Commit directly to `main` in small, focused commits; run `mix precommit`
+  before each commit
+- Commit messages follow Conventional Commits (`feat:`, `fix:`, `test:`,
+  `refactor:`, `docs:`, `style:`, `ci:`, `chore:`), imperative mood, in English
+- Keep CI green on `main`
+
 This is a web application written using the Phoenix web framework.
 
 ## Project guidelines
