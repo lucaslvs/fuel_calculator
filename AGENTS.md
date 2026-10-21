@@ -19,9 +19,10 @@ is in `docs/CHALLENGE.md`; read it before planning or implementing features.
 - `mix test --cover` — tests with coverage; 90% threshold, generated Phoenix
   infrastructure is excluded via `test_coverage` in `mix.exs`
 
-CI (`.github/workflows/ci.yml`) runs the same checks plus Dialyzer on every push.
-It also reports coverage (job summary and README badge); the threshold is not
-enforced yet, so `mix test --cover` exiting non-zero below 90% is expected for now.
+CI (`.github/workflows/ci.yml`) runs the same checks plus actionlint and Dialyzer
+on pushes and pull requests, except when only `*.md`, `docs/` or `.mcp.json`
+change. It also reports coverage (job summary and README badge); the threshold is
+not enforced yet, so `mix test --cover` exiting non-zero below 90% is expected for now.
 
 In development, a Tidewave MCP server is available at http://localhost:4000/tidewave/mcp
 while `mix phx.server` is running.
@@ -42,13 +43,39 @@ while `mix phx.server` is running.
   `core_components.ex`; use plain Tailwind utilities only for layout and
   fine-tuning (overrides the "no daisyUI" guideline below)
 
+## Deployment
+
+Every push to `main` that passes CI is deployed to production on Gigalixir
+(https://fuel-calculator.gigalixirapp.com) by the `deploy` job, which then smoke
+tests `GET /` and the LiveView websocket at `/live`.
+
+- Gigalixir builds a release with buildpacks (there is no Dockerfile): Erlang and
+  Elixir come from `.tool-versions`, assets from `mix assets.deploy`. Bumping
+  `.tool-versions` changes production; adding `assets/package.json` changes how
+  assets are built
+- Production config is read from environment variables in `config/runtime.exs`
+  (`SECRET_KEY_BASE`, `PHX_HOST`, `PHX_SERVER`). A new required variable must be
+  set on Gigalixir before pushing the commit that needs it, or the release fails
+  to boot and the deploy fails
+- Never read secrets or hosts from the environment in `config.exs` or `prod.exs`;
+  they are evaluated at build time
+- Keep dev-only tooling out of the release: deps `only: :dev`, plugs behind
+  `Mix.env() == :dev` (as with Tidewave)
+- `GET /` must render without parameters or session state; the smoke test and a
+  reviewer's first visit depend on it
+- Inspect production with `gigalixir ps` and `gigalixir logs --no-tail -n 200`
+  (plain `gigalixir logs` follows the stream forever)
+- Changing production (`gigalixir config:set`, scaling, restarts, deleting apps)
+  is outward-facing: ask before doing it
+
 ## Git workflow
 
 - Commit directly to `main` in small, focused commits; run `mix precommit`
   before each commit
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `test:`,
   `refactor:`, `docs:`, `style:`, `ci:`, `chore:`), imperative mood, in English
-- Keep CI green on `main`
+- Keep CI green on `main`; `main` is production, so every commit must be
+  deployable on its own
 
 This is a web application written using the Phoenix web framework.
 
