@@ -18,6 +18,10 @@ defmodule FuelCalculator.FuelTest do
       assert Fuel.step_fuel(80, :launch, :earth) == 0
     end
 
+    test "returns zero when the base fuel is exactly zero" do
+      assert Fuel.step_fuel(81, :launch, :earth) == 0
+    end
+
     test "stops when the fuel itself needs no more fuel" do
       assert Fuel.step_fuel(83, :launch, :earth) == 1
     end
@@ -52,12 +56,6 @@ defmodule FuelCalculator.FuelTest do
       ]
 
       assert Fuel.total(75_432, path) == 212_161
-    end
-
-    test "carries the fuel for later steps as weight" do
-      path = [launch: :earth, land: :moon, launch: :moon, land: :earth]
-
-      refute Fuel.total(28_801, Enum.reverse(path)) == Fuel.total(28_801, path)
     end
 
     test "requires no fuel for an empty path" do

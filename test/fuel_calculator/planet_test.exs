@@ -18,7 +18,7 @@ defmodule FuelCalculator.PlanetTest do
       assert Planet.gravity(:mars) == 3.711
     end
 
-    test "is defined for every supported planet" do
+    test "has a gravity for every planet in all/0" do
       for planet <- Planet.all() do
         assert is_float(Planet.gravity(planet))
       end
