@@ -27,8 +27,10 @@ Then open [`localhost:4000`](http://localhost:4000).
 ## Quality checks
 
 ```sh
-mix precommit   # compile --warnings-as-errors, format, credo --strict, test
-mix dialyzer    # static type analysis
+mix precommit     # compile --warnings-as-errors, format, credo --strict, test
+mix test --cover  # test coverage (90% threshold, HTML report in cover/)
+mix dialyzer      # static type analysis
 ```
 
-The same checks run on every push via GitHub Actions.
+The same checks run on every push via GitHub Actions, which also publishes a
+per-module coverage summary and updates the coverage badge.
