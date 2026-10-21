@@ -16,8 +16,12 @@ is in `docs/CHALLENGE.md`; read it before planning or implementing features.
 - `mix phx.server` — run the app at http://localhost:4000
 - `mix precommit` — compile (warnings as errors), unlock unused deps, format, `credo --strict`, test
 - `mix dialyzer` — static type analysis (first run builds the PLT in `priv/plts/`)
+- `mix test --cover` — tests with coverage; 90% threshold, generated Phoenix
+  infrastructure is excluded via `test_coverage` in `mix.exs`
 
 CI (`.github/workflows/ci.yml`) runs the same checks plus Dialyzer on every push.
+It also reports coverage (job summary and README badge); the threshold is not
+enforced yet, so `mix test --cover` exiting non-zero below 90% is expected for now.
 
 In development, a Tidewave MCP server is available at http://localhost:4000/tidewave/mcp
 while `mix phx.server` is running.
