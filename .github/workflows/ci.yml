@@ -134,3 +134,14 @@ jobs:
             echo "::error::LiveView websocket upgrade returned HTTP $code (check PHX_HOST)"
             exit 1
           fi
+
+      - name: Update deploy badge
+        if: always()
+        uses: schneegans/dynamic-badges-action@v1.9.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 92a585ac99ba97b6bca7818f6e6da8f9
+          filename: fuel_calculator-deploy.json
+          label: deploy
+          message: ${{ job.status == 'success' && 'passing' || 'failing' }}
+          color: ${{ job.status == 'success' && 'brightgreen' || 'red' }}
