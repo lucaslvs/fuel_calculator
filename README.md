@@ -38,3 +38,28 @@ mix dialyzer      # static type analysis
 
 The same checks run on every push via GitHub Actions, which also publishes a
 per-module coverage summary and updates the coverage badge.
+The CI workflow also lints itself with [actionlint](https://github.com/rhysd/actionlint).
+
+## Deployment
+
+The app runs on [Gigalixir](https://www.gigalixir.com)'s free tier at
+<https://fuel-calculator.gigalixirapp.com>, which keeps one instance always on
+(no cold start when someone opens the link).
+
+Every push to `main` that passes CI is deployed by the `deploy` job in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), which:
+
+1. pushes the commit to Gigalixir, which builds an Elixir release with its
+   buildpacks (versions from `.tool-versions`, assets via `mix assets.deploy`);
+2. waits until every instance runs that commit and reports healthy;
+3. smoke tests the home page and the LiveView websocket upgrade.
+
+Changes that only touch documentation (`*.md`, `docs/`) skip CI and deployment.
+
+Production needs these environment variables:
+
+| Variable          | Purpose                                                                  |
+| ----------------- | ------------------------------------------------------------------------ |
+| `SECRET_KEY_BASE` | Signs and encrypts cookies (generate with `mix phx.gen.secret`)          |
+| `PHX_HOST`        | Public hostname; LiveView rejects websocket connections from other hosts |
+| `PHX_SERVER`      | Starts the HTTP server when the release boots                            |
