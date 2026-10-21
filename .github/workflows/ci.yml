@@ -74,3 +74,63 @@ jobs:
           maxColorRange: 90
 
       - run: mix dialyzer --format github
+
+  deploy:
+    name: Deploy
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://fuel-calculator.gigalixirapp.com
+    env:
+      APP_NAME: fuel-calculator
+      APP_URL: https://fuel-calculator.gigalixirapp.com
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure Gigalixir credentials
+        env:
+          GIGALIXIR_EMAIL: ${{ secrets.GIGALIXIR_EMAIL }}
+          GIGALIXIR_API_KEY: ${{ secrets.GIGALIXIR_API_KEY }}
+        run: |
+          for host in git.gigalixir.com api.gigalixir.com; do
+            echo "machine $host login $GIGALIXIR_EMAIL password $GIGALIXIR_API_KEY"
+          done > ~/.netrc
+          chmod 600 ~/.netrc
+
+      - name: Push to Gigalixir
+        run: git push "https://git.gigalixir.com/$APP_NAME.git" "$GITHUB_SHA:refs/heads/main"
+
+      # `git push` returns once the rolling deploy starts, not when it finishes.
+      - name: Wait for rollout
+        run: |
+          for _ in $(seq 60); do
+            if curl -sf --netrc "https://api.gigalixir.com/api/apps/$APP_NAME/status" |
+              jq -e --arg sha "$GITHUB_SHA" \
+                '.data.pods | length > 0 and all(.sha == $sha and .status == "Healthy")' > /dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$GITHUB_SHA was not healthy on Gigalixir after 10 minutes"
+          exit 1
+
+      - name: Smoke test
+        run: |
+          curl -sf -o /dev/null "$APP_URL/"
+          # The upgraded socket stays open, so curl always ends on --max-time.
+          code=$(curl -s -o /dev/null --http1.1 --max-time 5 -w '%{http_code}' \
+            -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+            -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+            -H "Origin: $APP_URL" "$APP_URL/live/websocket?vsn=2.0.0" || true)
+          if [ "$code" != 101 ]; then
+            echo "::error::LiveView websocket upgrade returned HTTP $code (check PHX_HOST)"
+            exit 1
+          fi
