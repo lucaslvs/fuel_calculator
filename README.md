@@ -1,10 +1,14 @@
 # FuelCalculator
 
 [![CI](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml)
+[![Deploy](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/lucaslvs/92a585ac99ba97b6bca7818f6e6da8f9/raw/fuel_calculator-deploy.json)](https://fuel-calculator.gigalixirapp.com)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/lucaslvs/92a585ac99ba97b6bca7818f6e6da8f9/raw/fuel_calculator-coverage.json)](https://github.com/lucaslvs/fuel_calculator/actions/workflows/ci.yml)
 
 A Phoenix LiveView application that calculates the fuel required for interplanetary
 flight paths (launches and landings on Earth, Moon and Mars).
+
+Live demo: <https://fuel-calculator.gigalixirapp.com> (hosted on Gigalixir's free
+tier, deployed automatically from `main` after CI passes).
 
 See [`docs/CHALLENGE.md`](docs/CHALLENGE.md) for the full challenge description.
 
