@@ -261,7 +261,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp action_icon(:land), do: "hero-arrow-down-circle"
 
   @doc """
-  Renders the mission's total fuel, or a dash while the mission is invalid.
+  Renders the mission's total fuel, or a dash while the mission is invalid. Screen
+  readers announce the total whenever it changes.
 
   On large screens it is a card that sticks to the top of its column; below that, the
   same element is a compact bar fixed to the bottom of the screen, with the number of
@@ -289,8 +290,17 @@ defmodule FuelCalculatorWeb.MissionComponents do
           {if @fuel, do: steps_label(@step_count), else: "Complete the mission"}
         </div>
         <div class="stat-title text-base-content/70">Total fuel required</div>
-        <div id="total-fuel" class="stat-value tabular-nums max-lg:text-2xl">
-          {if @fuel, do: format_kg(@fuel.total), else: "—"}
+        <div
+          id="total-fuel"
+          class="stat-value tabular-nums max-lg:text-2xl"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <%= if @fuel do %>
+            {format_kg(@fuel.total)}
+          <% else %>
+            <span aria-hidden="true">—</span><span class="sr-only">not available yet</span>
+          <% end %>
         </div>
         <div class="stat-desc text-base-content/70 max-lg:hidden">
           {if @fuel,

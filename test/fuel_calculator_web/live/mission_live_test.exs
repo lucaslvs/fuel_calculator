@@ -125,6 +125,18 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-fuel-0", "1,035,490,598,312 kg")
     end
 
+    test "is announced to screen readers when it changes", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#total-fuel[aria-live=polite][aria-atomic=true]")
+      assert has_element?(view, "#total-fuel [aria-hidden=true]", "—")
+      assert has_element?(view, "#total-fuel .sr-only", "not available yet")
+
+      change(view, mission(28_801, land: :earth))
+
+      refute has_element?(view, "#total-fuel .sr-only")
+    end
+
     test "is cleared when the mass becomes invalid", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
