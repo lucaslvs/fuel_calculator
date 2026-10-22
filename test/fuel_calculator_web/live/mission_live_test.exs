@@ -32,6 +32,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
+    test "names the theme buttons", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      for {theme, name} <- [system: "System theme", light: "Light theme", dark: "Dark theme"] do
+        assert has_element?(view, "button[data-phx-theme=#{theme}][aria-label='#{name}']")
+      end
+    end
+
     test "limits the mass input to the largest mass", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
