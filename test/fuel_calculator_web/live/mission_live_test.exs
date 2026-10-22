@@ -3,6 +3,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   import Phoenix.LiveViewTest
 
+  # The missions of the challenge, also offered as examples (by id)
+  @missions [
+    {"apollo-11", 28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth],
+     "51,898 kg"},
+    {"mars", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth], "33,388 kg"},
+    {"passenger-ship", 75_432,
+     [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth],
+     "212,161 kg"}
+  ]
+
   test "GET / renders the mission form without parameters", %{conn: conn} do
     document = conn |> get(~p"/") |> html_response(200) |> LazyHTML.from_document()
 
@@ -31,21 +41,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   describe "total fuel" do
-    for {name, mass, path, total} <- [
-          {"Apollo 11", 28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth],
-           "51,898 kg"},
-          {"Mars", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth],
-           "33,388 kg"},
-          {"passenger ship", 75_432,
-           [
-             launch: :earth,
-             land: :moon,
-             launch: :moon,
-             land: :mars,
-             launch: :mars,
-             land: :earth
-           ], "212,161 kg"}
-        ] do
+    for {name, mass, path, total} <- @missions do
       test "is calculated for the #{name} mission", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
@@ -92,6 +88,37 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#mission_steps_0_planet.select-error")
       assert has_element?(view, "#total-fuel", "—")
+    end
+  end
+
+  describe "examples" do
+    for {id, mass, path, total} <- @missions do
+      test "loads the #{id} mission", %{conn: conn} do
+        {:ok, view, _html} = live(conn, ~p"/")
+
+        view |> element("#example-#{unquote(id)}") |> render_click()
+
+        assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
+
+        for {{action, planet}, index} <- Enum.with_index(unquote(path)) do
+          assert has_element?(view, "#step-#{index} option[value='#{action}'][selected]")
+          assert has_element?(view, "#step-#{index} option[value='#{planet}'][selected]")
+        end
+
+        refute has_element?(view, "#step-#{length(unquote(path))}")
+        assert has_element?(view, "#total-fuel", unquote(total))
+      end
+    end
+
+    test "ignores an unknown example", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+      render_hook(view, "load_example", %{"id" => "nope"})
+
+      assert has_element?(view, "#mission_mass[value='28801']")
+      refute has_element?(view, "#step-1")
+      assert has_element?(view, "#total-fuel", "13,447 kg")
     end
   end
 

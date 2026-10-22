@@ -13,11 +13,24 @@ defmodule FuelCalculatorWeb.MissionLive do
   @action_options Enum.map(Ecto.Enum.values(Step, :action), &{String.capitalize("#{&1}"), &1})
   @planet_options Enum.map(Planet.all(), &{String.capitalize("#{&1}"), &1})
 
+  # The missions of the challenge, as {id, label, mass, flight path}
+  @examples [
+    {"apollo-11", "Apollo 11", 28_801,
+     [launch: :earth, land: :moon, launch: :moon, land: :earth]},
+    {"mars", "Mars mission", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth]},
+    {"passenger-ship", "Passenger ship", 75_432,
+     [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth]}
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(action_options: @action_options, planet_options: @planet_options)
+     |> assign(
+       action_options: @action_options,
+       planet_options: @planet_options,
+       examples: @examples
+     )
      # The form starts with one blank step, as if "Add step" had been clicked
      |> assign_mission(%{"steps_sort" => ["new"]})}
   end
@@ -25,6 +38,22 @@ defmodule FuelCalculatorWeb.MissionLive do
   @impl true
   def handle_event("validate", %{"mission" => params}, socket) do
     {:noreply, assign_mission(socket, swap_steps(params))}
+  end
+
+  def handle_event("load_example", %{"id" => id}, socket) do
+    case List.keyfind(@examples, id, 0) do
+      {^id, _label, mass, path} -> {:noreply, assign_mission(socket, mission_params(mass, path))}
+      nil -> {:noreply, socket}
+    end
+  end
+
+  defp mission_params(mass, path) do
+    steps =
+      for {{action, planet}, index} <- Enum.with_index(path), into: %{} do
+        {"#{index}", %{"action" => "#{action}", "planet" => "#{planet}"}}
+      end
+
+    %{"mass" => "#{mass}", "steps" => steps}
   end
 
   # The move buttons send steps_swap with the position of the step to swap with
@@ -67,6 +96,20 @@ defmodule FuelCalculatorWeb.MissionLive do
         Fuel calculator
         <:subtitle>Fuel required to fly a spacecraft along its flight path.</:subtitle>
       </.header>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-base-content/70">Try an example:</span>
+        <button
+          :for={{id, label, _mass, _path} <- @examples}
+          id={"example-#{id}"}
+          type="button"
+          phx-click="load_example"
+          phx-value-id={id}
+          class="btn btn-soft btn-sm"
+        >
+          {label}
+        </button>
+      </div>
 
       <div class="card card-border bg-base-100 shadow-sm">
         <.form
