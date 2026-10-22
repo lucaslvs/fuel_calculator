@@ -18,23 +18,28 @@ on:
     - cron: "17 6 1,15 * *"
   workflow_dispatch:
 
-env:
-  MIX_ENV: test
+permissions:
+  contents: read
 
 jobs:
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Lint workflows
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          # Script from the v1.7.12 commit
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
           "$RUNNER_TEMP/actionlint" -color
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         id: beam
         with:
           version-file: .tool-versions
@@ -87,7 +92,7 @@ jobs:
 
       - name: Update coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: schneegans/dynamic-badges-action@v1.9.0
+        uses: schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 92a585ac99ba97b6bca7818f6e6da8f9
@@ -119,16 +124,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure Gigalixir credentials
         env:
           GIGALIXIR_EMAIL: ${{ secrets.GIGALIXIR_EMAIL }}
           GIGALIXIR_API_KEY: ${{ secrets.GIGALIXIR_API_KEY }}
         run: |
+          umask 077
           for host in git.gigalixir.com api.gigalixir.com; do
             echo "machine $host login $GIGALIXIR_EMAIL password $GIGALIXIR_API_KEY"
           done > ~/.netrc
-          chmod 600 ~/.netrc
 
       # Pushing the SHA Gigalixir already has sends nothing and builds nothing, so
       # scheduled and manual runs deploy an empty commit that is never pushed to GitHub.
@@ -172,9 +178,13 @@ jobs:
             exit 1
           fi
 
+      - name: Remove Gigalixir credentials
+        if: always()
+        run: rm -f ~/.netrc
+
       - name: Update deploy badge
         if: always()
-        uses: schneegans/dynamic-badges-action@v1.9.0
+        uses: schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 92a585ac99ba97b6bca7818f6e6da8f9
