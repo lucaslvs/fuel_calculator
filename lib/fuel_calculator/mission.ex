@@ -18,6 +18,7 @@ defmodule FuelCalculator.Mission do
   @max_mass 1_000_000_000_000
 
   @type t :: %__MODULE__{mass: pos_integer() | nil, steps: [Step.t()]}
+  @type fuel :: %{total: non_neg_integer(), steps: [non_neg_integer()]}
 
   @primary_key false
   embedded_schema do
@@ -51,22 +52,23 @@ defmodule FuelCalculator.Mission do
   end
 
   @doc """
-  Validates a mission `changeset` and returns the total fuel the mission requires.
+  Validates a mission `changeset` and returns the fuel the mission requires.
   """
-  @spec calculate(Ecto.Changeset.t()) :: {:ok, non_neg_integer()} | {:error, Ecto.Changeset.t()}
+  @spec calculate(Ecto.Changeset.t()) :: {:ok, fuel()} | {:error, Ecto.Changeset.t()}
   def calculate(%Ecto.Changeset{} = changeset) do
     with {:ok, mission} <- apply_action(changeset, :validate) do
-      {:ok, total_fuel(mission)}
+      {:ok, fuel(mission)}
     end
   end
 
   @doc """
-  Returns the total fuel required to fly a valid `mission`.
+  Returns the fuel required to fly a valid `mission`: the total and the fuel
+  of each step, in the order of the flight path.
 
   ## Examples
 
       iex> alias FuelCalculator.Mission.Step
-      iex> FuelCalculator.Mission.total_fuel(%FuelCalculator.Mission{
+      iex> FuelCalculator.Mission.fuel(%FuelCalculator.Mission{
       ...>   mass: 28801,
       ...>   steps: [
       ...>     %Step{action: :launch, planet: :earth},
@@ -75,11 +77,12 @@ defmodule FuelCalculator.Mission do
       ...>     %Step{action: :land, planet: :earth}
       ...>   ]
       ...> })
-      51898
+      %{total: 51898, steps: [32988, 2462, 3001, 13447]}
 
   """
-  @spec total_fuel(t()) :: non_neg_integer()
-  def total_fuel(%__MODULE__{mass: mass, steps: steps}) do
-    Fuel.total(mass, Enum.map(steps, &{&1.action, &1.planet}))
+  @spec fuel(t()) :: fuel()
+  def fuel(%__MODULE__{mass: mass, steps: steps}) do
+    step_fuels = Fuel.breakdown(mass, Enum.map(steps, &{&1.action, &1.planet}))
+    %{total: Enum.sum(step_fuels), steps: step_fuels}
   end
 end

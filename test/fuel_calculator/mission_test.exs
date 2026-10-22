@@ -30,9 +30,9 @@ defmodule FuelCalculator.MissionTest do
     |> Enum.map(&{&1.action, &1.planet})
   end
 
-  defp total_fuel(params) do
+  defp fuel(params) do
     {:ok, mission} = params |> cast() |> Ecto.Changeset.apply_action(:validate)
-    Mission.total_fuel(mission)
+    Mission.fuel(mission)
   end
 
   describe "changeset/2 mass" do
@@ -86,7 +86,8 @@ defmodule FuelCalculator.MissionTest do
     test "already in the mission are kept when the params leave them untouched" do
       mission = %Mission{steps: [%Step{action: :land, planet: :earth}]}
 
-      assert Mission.calculate(Mission.changeset(mission, %{"mass" => "28801"})) == {:ok, 13_447}
+      assert Mission.calculate(Mission.changeset(mission, %{"mass" => "28801"})) ==
+               {:ok, %{total: 13_447, steps: [13_447]}}
     end
 
     test "can be added as a blank step" do
@@ -120,8 +121,9 @@ defmodule FuelCalculator.MissionTest do
   end
 
   describe "calculate/1" do
-    test "returns the total fuel of a valid mission" do
-      assert Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11})) == {:ok, 51_898}
+    test "returns the fuel of a valid mission" do
+      assert Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11})) ==
+               {:ok, %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}}
     end
 
     test "returns the changeset of an invalid mission with its errors" do
@@ -131,9 +133,10 @@ defmodule FuelCalculator.MissionTest do
     end
   end
 
-  describe "total_fuel/1" do
+  describe "fuel/1" do
     test "calculates the Apollo 11 mission" do
-      assert total_fuel(%{"mass" => "28801", "steps" => @apollo_11}) == 51_898
+      assert fuel(%{"mass" => "28801", "steps" => @apollo_11}) ==
+               %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}
     end
 
     test "calculates the Mars mission" do
@@ -144,7 +147,7 @@ defmodule FuelCalculator.MissionTest do
         "3" => %{"action" => "land", "planet" => "earth"}
       }
 
-      assert total_fuel(%{"mass" => "14606", "steps" => steps}) == 33_388
+      assert %{total: 33_388} = fuel(%{"mass" => "14606", "steps" => steps})
     end
 
     test "calculates the passenger ship mission" do
@@ -157,11 +160,11 @@ defmodule FuelCalculator.MissionTest do
         "5" => %{"action" => "land", "planet" => "earth"}
       }
 
-      assert total_fuel(%{"mass" => "75432", "steps" => steps}) == 212_161
+      assert %{total: 212_161} = fuel(%{"mass" => "75432", "steps" => steps})
     end
 
     test "requires no fuel for an empty path" do
-      assert total_fuel(%{"mass" => "28801"}) == 0
+      assert fuel(%{"mass" => "28801"}) == %{total: 0, steps: []}
     end
   end
 end

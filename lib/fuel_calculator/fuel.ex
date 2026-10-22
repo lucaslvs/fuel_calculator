@@ -31,10 +31,37 @@ defmodule FuelCalculator.Fuel do
   end
 
   @doc """
-  Returns the total fuel required to fly `mass` along `path`.
+  Returns the fuel required for each step when flying `mass` along `path`,
+  in the order of the path.
 
   Steps are calculated from last to first, since the fuel for the later
   steps is carried as weight during the earlier ones.
+
+  ## Examples
+
+      iex> FuelCalculator.Fuel.breakdown(28801, [
+      ...>   {:launch, :earth},
+      ...>   {:land, :moon},
+      ...>   {:launch, :moon},
+      ...>   {:land, :earth}
+      ...> ])
+      [32988, 2462, 3001, 13447]
+
+  """
+  @spec breakdown(pos_integer(), [step()]) :: [non_neg_integer()]
+  def breakdown(mass, path) when is_integer(mass) and mass > 0 and is_list(path) do
+    path
+    |> Enum.reverse()
+    |> Enum.map_reduce(0, fn {action, planet}, carried ->
+      fuel = step_fuel(mass + carried, action, planet)
+      {fuel, carried + fuel}
+    end)
+    |> elem(0)
+    |> Enum.reverse()
+  end
+
+  @doc """
+  Returns the total fuel required to fly `mass` along `path`.
 
   ## Examples
 
@@ -49,11 +76,7 @@ defmodule FuelCalculator.Fuel do
   """
   @spec total(pos_integer(), [step()]) :: non_neg_integer()
   def total(mass, path) when is_integer(mass) and mass > 0 and is_list(path) do
-    path
-    |> Enum.reverse()
-    |> Enum.reduce(0, fn {action, planet}, fuel ->
-      fuel + step_fuel(mass + fuel, action, planet)
-    end)
+    mass |> breakdown(path) |> Enum.sum()
   end
 
   defp base_fuel(mass, :launch, gravity), do: floor(mass * gravity * 0.042 - 33)

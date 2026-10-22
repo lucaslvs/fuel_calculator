@@ -30,13 +30,13 @@ defmodule FuelCalculatorWeb.MissionLive do
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
 
-    total_fuel =
+    fuel =
       case Mission.calculate(changeset) do
-        {:ok, total_fuel} -> total_fuel
+        {:ok, fuel} -> fuel
         {:error, _changeset} -> nil
       end
 
-    assign(socket, form: to_form(changeset, action: :validate), total_fuel: total_fuel)
+    assign(socket, form: to_form(changeset, action: :validate), fuel: fuel)
   end
 
   @impl true
@@ -109,7 +109,7 @@ defmodule FuelCalculatorWeb.MissionLive do
         <div class="stat">
           <div class="stat-title">Total fuel required</div>
           <div id="total-fuel" class="stat-value">
-            {if @total_fuel, do: "#{@total_fuel} kg", else: "—"}
+            {if @fuel, do: "#{@fuel.total} kg", else: "—"}
           </div>
         </div>
       </div>

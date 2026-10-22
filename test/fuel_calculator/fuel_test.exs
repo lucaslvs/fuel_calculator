@@ -32,6 +32,41 @@ defmodule FuelCalculator.FuelTest do
     end
   end
 
+  describe "breakdown/2" do
+    test "returns the fuel of each Apollo 11 step" do
+      path = [launch: :earth, land: :moon, launch: :moon, land: :earth]
+
+      assert Fuel.breakdown(28_801, path) == [32_988, 2462, 3001, 13_447]
+    end
+
+    test "adds up to the total of each mission" do
+      for {mass, path} <- [
+            {28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth]},
+            {14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth]},
+            {75_432,
+             [
+               launch: :earth,
+               land: :moon,
+               launch: :moon,
+               land: :mars,
+               launch: :mars,
+               land: :earth
+             ]}
+          ] do
+        assert mass |> Fuel.breakdown(path) |> Enum.sum() == Fuel.total(mass, path)
+      end
+    end
+
+    test "returns no steps for an empty path" do
+      assert Fuel.breakdown(28_801, []) == []
+    end
+
+    test "rejects a mass that is not positive" do
+      assert_raise FunctionClauseError, fn -> Fuel.breakdown(0, []) end
+      assert_raise FunctionClauseError, fn -> Fuel.breakdown(-1, []) end
+    end
+  end
+
   describe "total/2" do
     test "calculates the Apollo 11 mission" do
       path = [launch: :earth, land: :moon, launch: :moon, land: :earth]
