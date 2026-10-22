@@ -110,6 +110,20 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       end
     end
 
+    test "replaces a longer flight path without showing errors", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view |> element("#example-passenger-ship") |> render_click()
+      assert has_element?(view, "#step-5")
+
+      view |> element("#example-mars") |> render_click()
+
+      assert has_element?(view, "#step-3")
+      refute has_element?(view, "#step-4")
+      refute has_element?(view, ".input-error, .select-error")
+      assert has_element?(view, "#total-fuel", "33,388 kg")
+    end
+
     test "ignores an unknown example", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -140,6 +154,21 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-fuel-1")
 
       change(view, mission("", land: :moon, land: :earth))
+
+      refute has_element?(view, "[id^=step-fuel-]")
+    end
+
+    test "is hidden while a step is incomplete", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{
+        "mass" => "28801",
+        "steps_sort" => ["0", "1"],
+        "steps" => %{
+          "0" => %{"action" => "land", "planet" => "moon"},
+          "1" => %{"action" => "land", "planet" => ""}
+        }
+      })
 
       refute has_element?(view, "[id^=step-fuel-]")
     end
@@ -213,7 +242,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       refute has_element?(view, "#step-0")
       assert has_element?(view, "#empty-path")
-      assert has_element?(view, "#total-fuel", "0 kg")
+      assert has_element?(view, "#total-fuel", ~r/^\s*0 kg\s*$/)
     end
 
     test "hides the empty path message once a step is added", %{conn: conn} do
@@ -247,9 +276,43 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       for swap <- ["-1", "1", "2", "abc", "0.5", ""] do
         change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", swap))
 
-        assert has_element?(view, "#step-0 option[value='land'][selected]")
-        assert has_element?(view, "#step-1 option[value='launch'][selected]")
+        assert has_element?(view, "#step-0 option[value='land'][selected]"),
+               "steps_swap #{inspect(swap)} moved a step"
+
+        assert has_element?(view, "#step-1 option[value='launch'][selected]"),
+               "steps_swap #{inspect(swap)} moved a step"
       end
+    end
+
+    # render_hook sends the params as they are, without the form's inputs
+    test "ignores a move that is not a single position or has no order", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      for params <- [
+            Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", ["0"]),
+            mission(28_801, land: :earth, launch: :moon)
+            |> Map.delete("steps_sort")
+            |> Map.put("steps_swap", "0")
+          ] do
+        render_hook(view, "validate", %{"mission" => params})
+
+        assert has_element?(view, "#step-0 option[value='land'][selected]"),
+               "#{inspect(params)} moved a step"
+
+        assert has_element?(view, "#step-1 option[value='launch'][selected]"),
+               "#{inspect(params)} moved a step"
+      end
+    end
+
+    test "moves a step up or down by sending the position of the upper step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth, launch: :moon, land: :moon))
+
+      assert has_element?(view, "#move-step-up-1[name='mission[steps_swap]'][value='0']")
+      assert has_element?(view, "#move-step-down-1[name='mission[steps_swap]'][value='1']")
+      assert has_element?(view, "#move-step-up-2[value='1']")
+      assert has_element?(view, "#move-step-down-0[value='0']")
     end
 
     test "moves a step without showing errors on fields the user has not touched", %{
