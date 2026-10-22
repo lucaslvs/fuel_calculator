@@ -69,14 +69,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "is cleared when the mass becomes invalid", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      for mass <- ["0", "-1", "abc"] do
+      for mass <- ["0", "-1", "abc", "1000000000001"] do
         change(view, mission(28_801, land: :earth))
         assert has_element?(view, "#total-fuel", "13,447 kg")
 
         change(view, mission(mass, land: :earth))
 
-        assert has_element?(view, "#mission_mass.input-error")
-        assert has_element?(view, "#total-fuel", "—")
+        assert has_element?(view, "#mission_mass.input-error"), "mass #{inspect(mass)}"
+        assert has_element?(view, "#total-fuel", "—"), "mass #{inspect(mass)}"
       end
     end
 
@@ -271,6 +271,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#step-1 option[selected]")
     end
 
+    test "adds and removes steps through the order and removal params", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth, launch: :moon))
+
+      assert has_element?(view, "#add-step[name='mission[steps_sort][]'][value='new']")
+      assert has_element?(view, "#remove-step-0[name='mission[steps_drop][]'][value='0']")
+      assert has_element?(view, "#remove-step-1[name='mission[steps_drop][]'][value='1']")
+    end
+
     test "removes a step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -307,6 +317,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, land: :earth, launch: :moon))
       assert has_element?(view, "#total-fuel", "16,436 kg")
+      assert has_element?(view, "#step-0 #step-fuel-0", "14,412 kg")
+      assert has_element?(view, "#step-1 #step-fuel-1", "2,024 kg")
 
       change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", "0"))
 
@@ -314,6 +326,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0 option[value='moon'][selected]")
       assert has_element?(view, "#step-1 option[value='land'][selected]")
       assert has_element?(view, "#step-1 option[value='earth'][selected]")
+      assert has_element?(view, "#step-0 #step-fuel-0", "3,001 kg")
+      assert has_element?(view, "#step-1 #step-fuel-1", "13,447 kg")
       assert has_element?(view, "#total-fuel", "16,448 kg")
     end
 
