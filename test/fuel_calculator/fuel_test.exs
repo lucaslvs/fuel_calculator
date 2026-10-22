@@ -97,6 +97,15 @@ defmodule FuelCalculator.FuelTest do
       assert Fuel.total(28_801, []) == 0
     end
 
+    # The largest mission a user can enter, with the exact integer results
+    test "calculates the heaviest missions" do
+      assert Fuel.breakdown(1_000_000_000_000, launch: :earth, land: :earth) ==
+               [1_035_490_598_312, 478_482_897_826]
+
+      assert Fuel.total(1_000_000_000_000, List.duplicate({:launch, :earth}, 15)) ==
+               2_870_877_069_360_685
+    end
+
     test "rejects a mass that is not positive" do
       assert_raise FunctionClauseError, fn -> Fuel.total(0, []) end
       assert_raise FunctionClauseError, fn -> Fuel.total(-1, []) end

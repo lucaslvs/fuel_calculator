@@ -23,6 +23,10 @@ defmodule FuelCalculator.MissionTest do
     end)
   end
 
+  defp steps(count) do
+    Map.new(1..count, &{"#{&1 - 1}", %{"action" => "launch", "planet" => "earth"}})
+  end
+
   defp path(changeset) do
     changeset
     |> Ecto.Changeset.apply_changes()
@@ -117,6 +121,53 @@ defmodule FuelCalculator.MissionTest do
         cast(%{"mass" => "28801", "steps" => @apollo_11, "steps_sort" => ~w(3 2 1 0)})
 
       assert path(changeset) == [land: :earth, launch: :moon, land: :moon, launch: :earth]
+    end
+  end
+
+  describe "changeset/2 step limit" do
+    test "allows up to 15 steps" do
+      changeset = cast(%{"mass" => "28801", "steps" => steps(15)})
+
+      assert changeset.valid?
+      assert length(path(changeset)) == 15
+    end
+
+    test "rejects more than 15 steps" do
+      for params <- [
+            %{"mass" => "28801", "steps" => steps(16)},
+            %{"mass" => "28801", "steps" => Map.values(steps(16))},
+            %{"mass" => "28801", "steps_sort" => List.duplicate("new", 16)},
+            %{mass: 28_801, steps: Map.values(steps(16))}
+          ] do
+        assert errors_on(cast(params)) == %{steps: ["should have at most 15 item(s)"]},
+               "#{inspect(params)} was accepted"
+      end
+    end
+
+    test "counts the steps out of the order after the ordered ones" do
+      changeset =
+        cast(%{
+          "mass" => "28801",
+          "steps_sort" => List.duplicate("new", 10),
+          "steps" => Map.new(steps(10), fn {key, step} -> {"x" <> key, step} end)
+        })
+
+      assert length(path(changeset)) == 20
+
+      assert {"should have at most %{count} item(s)", [{:count, 15} | _]} =
+               changeset.errors[:steps]
+    end
+
+    test "rejects oversized params without casting their steps" do
+      changeset = cast(%{"mass" => "28801", "steps_sort" => List.duplicate("new", 100_000)})
+
+      assert errors_on(changeset) == %{steps: ["should have at most 15 item(s)"]}
+      assert Ecto.Changeset.get_change(changeset, :steps) == nil
+    end
+
+    test "is exposed with the mass limit" do
+      assert Mission.max_steps() == 15
+      assert Mission.max_mass() == 1_000_000_000_000
     end
   end
 

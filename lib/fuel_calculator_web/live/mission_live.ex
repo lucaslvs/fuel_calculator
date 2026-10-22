@@ -29,7 +29,9 @@ defmodule FuelCalculatorWeb.MissionLive do
      |> assign(
        action_options: @action_options,
        planet_options: @planet_options,
-       examples: @examples
+       examples: @examples,
+       max_mass: Mission.max_mass(),
+       max_steps: Mission.max_steps()
      )
      # The form starts with one blank step, as if "Add step" had been clicked
      |> assign_mission(%{"steps_sort" => ["new"]})}
@@ -124,6 +126,7 @@ defmodule FuelCalculatorWeb.MissionLive do
             type="number"
             label="Spacecraft mass (kg)"
             min="1"
+            max={@max_mass}
             step="1"
           />
 
@@ -147,7 +150,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 >
                   <span
                     data-role="step-number"
-                    class="w-6 pt-1 text-center text-2xl font-thin tabular-nums opacity-40"
+                    class="w-8 pt-1 text-center text-2xl font-thin tabular-nums opacity-40"
                   >
                     {step.index + 1}
                   </span>
@@ -225,16 +228,30 @@ defmodule FuelCalculatorWeb.MissionLive do
 
             <input type="hidden" name="mission[steps_drop][]" />
 
+            <div :if={@form[:steps].errors != []} id="steps-errors">
+              <p
+                :for={msg <- Enum.map(@form[:steps].errors, &translate_error/1)}
+                class="flex items-center gap-2 text-sm text-error"
+              >
+                <.icon name="hero-exclamation-circle" class="size-5" />
+                {msg}
+              </p>
+            </div>
+
             <.button
               id="add-step"
               type="button"
               name="mission[steps_sort][]"
               value="new"
               phx-click={JS.dispatch("change")}
+              disabled={@step_count >= @max_steps}
               class="btn btn-soft btn-primary mt-2"
             >
               <.icon name="hero-plus" class="size-5" /> Add step
             </.button>
+            <p :if={@step_count >= @max_steps} id="step-limit" class="label">
+              A flight path has at most {@max_steps} steps.
+            </p>
           </fieldset>
         </.form>
       </div>

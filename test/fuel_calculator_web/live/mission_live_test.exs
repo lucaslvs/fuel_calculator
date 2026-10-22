@@ -32,6 +32,12 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, ".input-error, .select-error")
     end
 
+    test "limits the mass input to the largest mass", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#mission_mass[min='1'][max='1000000000000']")
+    end
+
     test "offers every action and planet", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -343,6 +349,35 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#move-step-down-0[disabled]")
       refute has_element?(view, "#move-step-up-1[disabled]")
       assert has_element?(view, "#move-step-down-1[disabled]")
+    end
+
+    test "disables adding a step at 15 steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 14)))
+      refute has_element?(view, "#add-step[disabled]")
+      refute has_element?(view, "#step-limit")
+
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 15)))
+
+      assert has_element?(view, "#step-14")
+      assert has_element?(view, "#add-step[disabled]")
+      assert has_element?(view, "#step-limit", "15 steps")
+      refute has_element?(view, "#steps-errors")
+    end
+
+    test "rejects more than 15 steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 16)))
+
+      assert has_element?(view, "#steps-errors", "should have at most 15 item(s)")
+      assert has_element?(view, "#total-fuel", "—")
+
+      change(view, mission(28_801, land: :earth))
+
+      refute has_element?(view, "#steps-errors")
+      assert has_element?(view, "#total-fuel", "13,447 kg")
     end
 
     test "numbers the steps", %{conn: conn} do
