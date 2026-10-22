@@ -17,6 +17,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0")
       refute has_element?(view, "#step-1")
       refute has_element?(view, "#step-0 option[selected]")
+      refute has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", "—")
       refute has_element?(view, ".input-error, .select-error")
     end
@@ -150,7 +151,28 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
 
       refute has_element?(view, "#step-0")
+      assert has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", "0 kg")
+    end
+
+    test "hides the empty path message once a step is added", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
+      change(view, %{"mass" => "28801", "steps_sort" => ["new"]})
+
+      assert has_element?(view, "#step-0")
+      refute has_element?(view, "#empty-path")
+    end
+
+    test "numbers the steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, land: :moon))
+
+      refute has_element?(view, "#empty-path")
+      assert has_element?(view, "#step-0 [data-role=step-number]", "1")
+      assert has_element?(view, "#step-1 [data-role=step-number]", "2")
     end
   end
 
