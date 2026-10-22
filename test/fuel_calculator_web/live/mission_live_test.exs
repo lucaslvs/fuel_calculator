@@ -27,7 +27,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0")
       refute has_element?(view, "#step-1")
       refute has_element?(view, "#step-0 option[selected], #step-0 input[checked]")
-      refute has_element?(view, "#empty-path")
+      refute has_element?(view, "#empty-path:not([hidden])")
       assert has_element?(view, "#total-fuel", "—")
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
@@ -361,6 +361,70 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   # LiveViewTest does not run, so these tests send the steps_sort, steps_swap and
   # steps_drop values the buttons add to the form. Moved steps are checked by row,
   # since inputs_for keeps each step's input ids when it changes position.
+  # The LiveViewTest doesn't run JS commands, so these check the commands each element
+  # carries; the focus itself was checked in a browser
+  describe "focus" do
+    test "moves to the step added with Add step, once", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "#steps [phx-mounted]")
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
+
+      assert has_element?(view, "#step-1[phx-mounted]")
+      refute has_element?(view, "#step-0[phx-mounted]")
+
+      change(view, %{"mass" => "28802", "steps_sort" => ["0", "1"]})
+
+      refute has_element?(view, "#steps [phx-mounted]")
+    end
+
+    test "stays put when an example is loaded", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
+      view |> element("#example-apollo-11") |> render_click()
+
+      refute has_element?(view, "#steps [phx-mounted]")
+    end
+
+    test "moves to Add step when the only step is removed", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert focus_target(view, "#remove-step-0") == "#add-step"
+    end
+
+    test "keeps the empty state in the page while there are steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      # Inserting it when the last step is removed would move "Add step" and drop its focus
+      assert has_element?(view, "#empty-path[hidden]")
+    end
+
+    test "moves to the previous step's remove button on removal", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view |> element("#example-apollo-11") |> render_click()
+
+      # The first step's button becomes the next step's, so the focus stays on it
+      assert focus_target(view, "#remove-step-0") == nil
+      assert focus_target(view, "#remove-step-1") == "#remove-step-0"
+      assert focus_target(view, "#remove-step-3") == "#remove-step-2"
+    end
+
+    test "follows the moved step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view |> element("#example-apollo-11") |> render_click()
+
+      assert focus_target(view, "#move-step-up-2") == "#move-step-up-1"
+      assert focus_target(view, "#move-step-down-1") == "#move-step-down-2"
+      # A step moved to an end gets the button that is still enabled
+      assert focus_target(view, "#move-step-up-1") == "#move-step-down-0"
+      assert focus_target(view, "#move-step-down-2") == "#move-step-up-3"
+    end
+  end
+
   describe "flight path" do
     test "adds a blank step and keeps the entered values", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
@@ -401,7 +465,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
 
       refute has_element?(view, "#step-0")
-      assert has_element?(view, "#empty-path")
+      assert has_element?(view, "#empty-path:not([hidden])")
       assert has_element?(view, "#total-fuel", ~r/^\s*0 kg\s*$/)
     end
 
@@ -412,7 +476,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["new"]})
 
       assert has_element?(view, "#step-0")
-      refute has_element?(view, "#empty-path")
+      refute has_element?(view, "#empty-path:not([hidden])")
     end
 
     test "moves a step down", %{conn: conn} do
@@ -554,10 +618,21 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, launch: :earth, land: :moon))
 
-      refute has_element?(view, "#empty-path")
+      refute has_element?(view, "#empty-path:not([hidden])")
       assert has_element?(view, "#step-0 [data-role=step-number]", "1")
       assert has_element?(view, "#step-1 [data-role=step-number]", "2")
     end
+  end
+
+  defp focus_target(view, button) do
+    view
+    |> render()
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query(button)
+    |> LazyHTML.attribute("phx-click")
+    |> hd()
+    |> JSON.decode!()
+    |> Enum.find_value(fn [kind, args] -> if kind == "focus", do: args["to"] end)
   end
 
   defp change(view, params) do

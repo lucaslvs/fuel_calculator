@@ -42,6 +42,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :step_count, :integer, required: true
   attr :max_steps, :integer, required: true
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
+  attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
 
@@ -50,9 +51,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
     <fieldset class="fieldset">
       <legend class="fieldset-legend">Flight path</legend>
 
+      <%!-- Hidden rather than removed: inserting it would move the elements after it,
+           and moving the focused "Add step" drops its focus --%>
       <div
-        :if={@step_count == 0}
         id="empty-path"
+        hidden={@step_count > 0}
         class="rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-base-content/60"
       >
         <.icon name="hero-map" class="mb-1 size-6" />
@@ -65,6 +68,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             step={step}
             step_count={@step_count}
             fuel={@fuel && Enum.at(@fuel.steps, step.index)}
+            focus={step.index == @focus_step}
             action_options={@action_options}
             planet_options={@planet_options}
           />
@@ -104,10 +108,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
   @doc """
   Renders a step of the flight path: its number, action, planet and fuel, and the
   buttons that move and remove it.
+
+  Moving or removing a step re-renders the rows by position, so the buttons also move
+  the focus to the one that keeps the user's place, which exists before and after the
+  change: the moved step's button, or the previous step's remove button.
   """
   attr :step, Phoenix.HTML.Form, required: true, doc: "the step's form, from `inputs_for`"
   attr :step_count, :integer, required: true
   attr :fuel, :integer, default: nil, doc: "the step's fuel, or nil while the mission is invalid"
+  attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
 
@@ -116,6 +125,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     <div
       id={"step-#{@step.index}"}
       class="list-row items-start gap-2 px-0 py-2 motion-safe:animate-fade-in sm:gap-3"
+      phx-mounted={@focus && JS.focus_first()}
     >
       <span
         data-role="step-number"
@@ -157,7 +167,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           type="button"
           name="mission[steps_swap]"
           value={@step.index - 1}
-          phx-click={JS.dispatch("change")}
+          phx-click={change_and_focus(move_up_focus(@step.index))}
           disabled={@step.index == 0}
           class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
           aria-label={"Move step #{@step.index + 1} up"}
@@ -169,7 +179,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           type="button"
           name="mission[steps_swap]"
           value={@step.index}
-          phx-click={JS.dispatch("change")}
+          phx-click={change_and_focus(move_down_focus(@step.index, @step_count))}
           disabled={@step.index == @step_count - 1}
           class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
           aria-label={"Move step #{@step.index + 1} down"}
@@ -181,7 +191,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           type="button"
           name="mission[steps_drop][]"
           value={@step.index}
-          phx-click={JS.dispatch("change")}
+          phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
           class="btn btn-ghost btn-sm btn-square join-item hover:text-error sm:btn-md"
           aria-label={"Remove step #{@step.index + 1}"}
         >
@@ -192,6 +202,20 @@ defmodule FuelCalculatorWeb.MissionComponents do
     </div>
     """
   end
+
+  defp change_and_focus(nil), do: JS.dispatch("change")
+  defp change_and_focus(selector), do: "change" |> JS.dispatch() |> JS.focus(to: selector)
+
+  # The first step's up button and the last one's down button are disabled
+  defp move_up_focus(index) when index > 1, do: "#move-step-up-#{index - 1}"
+  defp move_up_focus(_index), do: "#move-step-down-0"
+
+  defp move_down_focus(index, count) when index < count - 2, do: "#move-step-down-#{index + 1}"
+  defp move_down_focus(_index, count), do: "#move-step-up-#{count - 1}"
+
+  defp remove_focus(0, 1), do: "#add-step"
+  defp remove_focus(0, _count), do: nil
+  defp remove_focus(index, _count), do: "#remove-step-#{index - 1}"
 
   @doc """
   Renders a step's action as a group of radio buttons, one per action.

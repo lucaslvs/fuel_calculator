@@ -41,7 +41,9 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   @impl true
   def handle_event("validate", %{"mission" => %{} = params}, socket) do
-    {:noreply, assign_mission(socket, params |> form_params() |> swap_steps())}
+    params = params |> form_params() |> swap_steps()
+
+    {:noreply, socket |> assign_mission(params) |> assign(focus_step: added_step(params))}
   end
 
   def handle_event("load_example", %{"id" => id}, socket) do
@@ -100,6 +102,14 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   defp swap_steps(params), do: params
 
+  # "Add step" sends "new" in steps_sort, at the position the new step takes
+  defp added_step(%{"steps_sort" => sort}) when is_list(sort),
+    do: Enum.find_index(sort, &(&1 == "new"))
+
+  defp added_step(_params), do: nil
+
+  # Only the change that adds a step sets focus_step, so loading the page or an example
+  # never takes the focus
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
 
@@ -112,6 +122,7 @@ defmodule FuelCalculatorWeb.MissionLive do
     assign(socket,
       form: to_form(changeset, action: :validate),
       mass: valid_mass(changeset),
+      focus_step: nil,
       fuel: fuel,
       step_count: length(Ecto.Changeset.get_field(changeset, :steps))
     )
@@ -168,6 +179,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 step_count={@step_count}
                 max_steps={@max_steps}
                 fuel={@fuel}
+                focus_step={@focus_step}
                 action_options={@action_options}
                 planet_options={@planet_options}
               />
