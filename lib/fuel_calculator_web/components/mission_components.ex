@@ -288,11 +288,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <div id="fuel-summary-steps" class="stat-figure text-sm text-base-content/70 lg:hidden">
           {if @fuel, do: steps_label(@step_count), else: "Complete the mission"}
         </div>
-        <div class="stat-title">Total fuel required</div>
+        <div class="stat-title text-base-content/70">Total fuel required</div>
         <div id="total-fuel" class="stat-value tabular-nums max-lg:text-2xl">
           {if @fuel, do: format_kg(@fuel.total), else: "—"}
         </div>
-        <div class="stat-desc max-lg:hidden">
+        <div class="stat-desc text-base-content/70 max-lg:hidden">
           {if @fuel,
             do: "Includes the fuel to carry the fuel",
             else: "Enter a mass and complete every step"}
