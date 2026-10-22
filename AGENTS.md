@@ -49,6 +49,11 @@ Every push to `main` that passes CI is deployed to production on Gigalixir
 (https://fuel-calculator.gigalixirapp.com) by the `deploy` job, which then smoke
 tests `GET /` and the LiveView websocket at `/live`.
 
+- The same job also runs on the 1st and 15th of each month (and on manual
+  dispatch): it deploys an empty keep-alive commit that exists only on Gigalixir,
+  because the free tier scales apps without a deploy for 30 days down to 0. So
+  `gigalixir ps` may show a SHA that is not on GitHub, and the push to Gigalixir is
+  forced on purpose
 - Gigalixir builds a release with buildpacks (there is no Dockerfile): Erlang and
   Elixir come from `.tool-versions`, assets from `mix assets.deploy`. Bumping
   `.tool-versions` changes production; adding `assets/package.json` changes how

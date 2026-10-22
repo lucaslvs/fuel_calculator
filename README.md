@@ -55,6 +55,8 @@ Every push to `main` that passes CI is deployed by the `deploy` job in
 3. smoke tests the home page and the LiveView websocket upgrade.
 
 Changes that only touch documentation (`*.md`, `docs/`) skip CI and deployment.
+The same job also redeploys `main` on the 1st and 15th of each month, because
+Gigalixir's free tier scales apps down to 0 after 30 days without a deploy.
 
 Production needs these environment variables:
 

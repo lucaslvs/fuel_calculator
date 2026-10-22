@@ -12,6 +12,11 @@ on:
       - "**/*.md"
       - "docs/**"
       - ".mcp.json"
+  # Redeploys production: Gigalixir's free tier scales an app down to 0 after 30
+  # days without a deploy (warning email on day 23).
+  schedule:
+    - cron: "17 6 1,15 * *"
+  workflow_dispatch:
 
 env:
   MIX_ENV: test
@@ -98,7 +103,7 @@ jobs:
   deploy:
     name: Deploy
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: deploy
@@ -125,21 +130,33 @@ jobs:
           done > ~/.netrc
           chmod 600 ~/.netrc
 
+      # Pushing the SHA Gigalixir already has sends nothing and builds nothing, so
+      # scheduled and manual runs deploy an empty commit that is never pushed to GitHub.
+      - name: Create keep-alive commit
+        if: github.event_name != 'push'
+        run: |
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --allow-empty -m "chore: keep the Gigalixir app alive"
+
+      # Forced: Gigalixir's main may be a keep-alive commit that is not an ancestor of HEAD.
       - name: Push to Gigalixir
-        run: git push "https://git.gigalixir.com/$APP_NAME.git" "$GITHUB_SHA:refs/heads/main"
+        run: |
+          git push -f "https://git.gigalixir.com/$APP_NAME.git" HEAD:refs/heads/main
+          echo "DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # `git push` returns once the rolling deploy starts, not when it finishes.
       - name: Wait for rollout
         run: |
           for _ in $(seq 60); do
             if curl -sf --netrc "https://api.gigalixir.com/api/apps/$APP_NAME/status" |
-              jq -e --arg sha "$GITHUB_SHA" \
+              jq -e --arg sha "$DEPLOY_SHA" \
                 '.data.pods | length > 0 and all(.sha == $sha and .status == "Healthy")' > /dev/null; then
               exit 0
             fi
             sleep 10
           done
-          echo "::error::$GITHUB_SHA was not healthy on Gigalixir after 10 minutes"
+          echo "::error::$DEPLOY_SHA was not healthy on Gigalixir after 10 minutes"
           exit 1
 
       - name: Smoke test
