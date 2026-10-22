@@ -28,6 +28,9 @@ defmodule FuelCalculatorWeb.Endpoint do
     from: :fuel_calculator,
     gzip: not code_reloading?,
     only: FuelCalculatorWeb.static_paths(),
+    # The digested copy of a file at the root, such as favicon-<hash>.svg, doesn't match
+    # its name in only
+    only_matching: ~w(favicon),
     raise_on_missing_only: code_reloading?
 
   if Mix.env() == :dev do
