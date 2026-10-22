@@ -124,13 +124,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
         {@step.index + 1}
       </span>
       <div class="list-col-grow flex flex-wrap gap-x-2">
-        <div class="min-w-28 flex-1">
-          <.input
+        <div class="flex-none">
+          <.action_toggle
             field={@step[:action]}
-            type="select"
-            prompt="Action"
+            label={"Step #{@step.index + 1} action"}
             options={@action_options}
-            aria-label={"Step #{@step.index + 1} action"}
           />
         </div>
         <div class="min-w-28 flex-1">
@@ -194,6 +192,73 @@ defmodule FuelCalculatorWeb.MissionComponents do
     </div>
     """
   end
+
+  @doc """
+  Renders a step's action as a group of radio buttons, one per action.
+
+  While no action is checked the browser sends nothing for the radios, so a hidden
+  empty input keeps the action in the params: without it the field never counts as
+  used and its error stays hidden, even on submit.
+  """
+  attr :field, Phoenix.HTML.FormField, required: true, doc: "the step's action field"
+  attr :label, :string, required: true, doc: "the accessible name of the group"
+  attr :options, :list, required: true, doc: "the actions, as `{label, value}` tuples"
+
+  def action_toggle(%{field: field} = assigns) do
+    errors = if used_input?(field), do: field.errors, else: []
+
+    assigns =
+      assign(assigns,
+        errors: Enum.map(errors, &translate_error/1),
+        checked: to_string(field.value)
+      )
+
+    ~H"""
+    <fieldset
+      id={@field.id}
+      class="fieldset mb-2"
+      role="radiogroup"
+      aria-invalid={@errors != [] && "true"}
+      aria-describedby={@errors != [] && "#{@field.id}-error"}
+    >
+      <legend class="sr-only">{@label}</legend>
+      <input type="hidden" name={@field.name} value="" />
+      <div class="join">
+        <label
+          :for={{label, value} <- @options}
+          for={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
+          class={[
+            "btn join-item gap-1",
+            "has-focus-visible:outline-2 has-focus-visible:outline-offset-2",
+            "has-focus-visible:outline-primary",
+            to_string(value) == @checked && "btn-primary",
+            @errors != [] && "border-error"
+          ]}
+        >
+          <input
+            type="radio"
+            id={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
+            name={@field.name}
+            value={value}
+            checked={to_string(value) == @checked}
+            class="sr-only"
+          />
+          <.icon name={action_icon(value)} class="size-4" />
+          {label}
+        </label>
+      </div>
+      <div :if={@errors != []} id={"#{@field.id}-error"}>
+        <p :for={msg <- @errors} class="mt-1.5 flex items-center gap-2 text-sm text-error">
+          <.icon name="hero-exclamation-circle" class="size-5" />
+          {msg}
+        </p>
+      </div>
+    </fieldset>
+    """
+  end
+
+  defp action_icon(:launch), do: "hero-arrow-up-circle"
+  defp action_icon(:land), do: "hero-arrow-down-circle"
 
   @doc """
   Renders the mission's total fuel, or a dash while the mission is invalid.

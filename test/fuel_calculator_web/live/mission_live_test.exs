@@ -26,10 +26,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#mission_mass[value]:not([value=''])")
       assert has_element?(view, "#step-0")
       refute has_element?(view, "#step-1")
-      refute has_element?(view, "#step-0 option[selected]")
+      refute has_element?(view, "#step-0 option[selected], #step-0 input[checked]")
       refute has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", "—")
-      refute has_element?(view, ".input-error, .select-error")
+      refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
     test "limits the mass input to the largest mass", %{conn: conn} do
@@ -41,7 +41,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "offers every action and planet", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert option_values(view, "#mission_steps_0_action") == ["", "launch", "land"]
+      assert radio_values(view, "#mission_steps_0_action") == ["launch", "land"]
       assert option_values(view, "#mission_steps_0_planet") == ["", "earth", "moon", "mars"]
     end
   end
@@ -125,7 +125,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
         assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
 
         for {{action, planet}, index} <- Enum.with_index(unquote(path)) do
-          assert has_element?(view, "#step-#{index} option[value='#{action}'][selected]")
+          assert has_element?(view, "#step-#{index} input[value='#{action}'][checked]")
           assert has_element?(view, "#step-#{index} option[value='#{planet}'][selected]")
         end
 
@@ -144,7 +144,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#step-3")
       refute has_element?(view, "#step-4")
-      refute has_element?(view, ".input-error, .select-error")
+      refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
       assert has_element?(view, "#total-fuel", "33,388 kg")
     end
 
@@ -215,7 +215,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
         }
       })
 
-      refute has_element?(view, ".input-error, .select-error")
+      refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
     test "shows every error on submit", %{conn: conn} do
@@ -226,7 +226,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       |> render_submit(%{"mission" => %{"mass" => "", "steps_sort" => ["0"]}})
 
       assert has_element?(view, "#mission_mass.input-error")
-      assert has_element?(view, "#mission_steps_0_action.select-error")
+      assert has_element?(view, "#mission_steps_0_action[aria-invalid]")
+      assert has_element?(view, "#mission_steps_0_action-error", "can't be blank")
       assert has_element?(view, "#mission_steps_0_planet.select-error")
     end
   end
@@ -283,10 +284,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{mission(28_801, land: :earth) | "steps_sort" => ["0", "new"]})
 
       assert has_element?(view, "#mission_mass[value='28801']")
-      assert has_element?(view, "#mission_steps_0_action option[value='land'][selected]")
+      assert has_element?(view, "#mission_steps_0_action input[value='land'][checked]")
       assert has_element?(view, "#mission_steps_0_planet option[value='earth'][selected]")
       assert has_element?(view, "#step-1")
-      refute has_element?(view, "#step-1 option[selected]")
+      refute has_element?(view, "#step-1 option[selected], #step-1 input[checked]")
     end
 
     test "adds and removes steps through the order and removal params", %{conn: conn} do
@@ -340,9 +341,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", "0"))
 
-      assert has_element?(view, "#step-0 option[value='launch'][selected]")
+      assert has_element?(view, "#step-0 input[value='launch'][checked]")
       assert has_element?(view, "#step-0 option[value='moon'][selected]")
-      assert has_element?(view, "#step-1 option[value='land'][selected]")
+      assert has_element?(view, "#step-1 input[value='land'][checked]")
       assert has_element?(view, "#step-1 option[value='earth'][selected]")
       assert has_element?(view, "#step-0 #step-fuel-0", "3,001 kg")
       assert has_element?(view, "#step-1 #step-fuel-1", "13,447 kg")
@@ -355,10 +356,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       for swap <- ["-1", "1", "2", "abc", "0.5", ""] do
         change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", swap))
 
-        assert has_element?(view, "#step-0 option[value='land'][selected]"),
+        assert has_element?(view, "#step-0 input[value='land'][checked]"),
                "steps_swap #{inspect(swap)} moved a step"
 
-        assert has_element?(view, "#step-1 option[value='launch'][selected]"),
+        assert has_element?(view, "#step-1 input[value='launch'][checked]"),
                "steps_swap #{inspect(swap)} moved a step"
       end
     end
@@ -375,10 +376,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
           ] do
         render_hook(view, "validate", %{"mission" => params})
 
-        assert has_element?(view, "#step-0 option[value='land'][selected]"),
+        assert has_element?(view, "#step-0 input[value='land'][checked]"),
                "#{inspect(params)} moved a step"
 
-        assert has_element?(view, "#step-1 option[value='launch'][selected]"),
+        assert has_element?(view, "#step-1 input[value='launch'][checked]"),
                "#{inspect(params)} moved a step"
       end
     end
@@ -409,8 +410,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
         }
       })
 
-      assert has_element?(view, "#step-1 option[value='land'][selected]")
-      refute has_element?(view, ".input-error, .select-error")
+      assert has_element?(view, "#step-1 input[value='land'][checked]")
+      refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
     test "disables moving the first step up and the last step down", %{conn: conn} do
@@ -453,6 +454,17 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", "13,447 kg")
     end
 
+    test "marks the chosen action and only it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+
+      assert has_element?(view, "#mission_steps_0_action_land[checked]")
+      refute has_element?(view, "#mission_steps_0_action_launch[checked]")
+      assert has_element?(view, "label[for=mission_steps_0_action_land].btn-primary")
+      refute has_element?(view, "label[for=mission_steps_0_action_launch].btn-primary")
+    end
+
     test "numbers the steps", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -475,6 +487,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     |> render()
     |> LazyHTML.from_fragment()
     |> LazyHTML.query("#{select} option")
+    |> LazyHTML.attribute("value")
+  end
+
+  defp radio_values(view, group) do
+    view
+    |> render()
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query("#{group} input[type=radio]")
     |> LazyHTML.attribute("value")
   end
 
