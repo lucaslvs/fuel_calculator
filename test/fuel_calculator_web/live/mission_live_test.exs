@@ -95,6 +95,24 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_steps_0_planet.select-error")
       assert has_element?(view, "#total-fuel", "—")
     end
+
+    test "is shown once, with the number of steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#fuel-summary-steps", "Complete the mission")
+
+      change(view, mission(28_801, land: :earth))
+      assert has_element?(view, "#fuel-summary-steps", "1 step")
+
+      view |> element("#example-apollo-11") |> render_click()
+      assert has_element?(view, "#fuel-summary-steps", "4 steps")
+
+      assert view
+             |> render()
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query("#total-fuel")
+             |> Enum.count() == 1
+    end
   end
 
   describe "examples" do

@@ -119,43 +119,48 @@ defmodule FuelCalculatorWeb.MissionLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <.header>
-        Fuel calculator
-        <:subtitle>Fuel required to fly a spacecraft along its flight path.</:subtitle>
-      </.header>
+    <Layouts.app flash={@flash} class="max-w-5xl">
+      <%!-- Below lg the fuel summary is a bar fixed to the bottom, hence the padding --%>
+      <div class="max-lg:pb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+        <div class="space-y-4">
+          <.header>
+            Fuel calculator
+            <:subtitle>Fuel required to fly a spacecraft along its flight path.</:subtitle>
+          </.header>
 
-      <.example_buttons examples={@examples} />
+          <.example_buttons examples={@examples} />
 
-      <div class="card card-border bg-base-100 shadow-sm">
-        <.form
-          for={@form}
-          id="mission-form"
-          class="card-body gap-4 p-4 sm:p-6"
-          phx-change="validate"
-          phx-submit="validate"
-        >
-          <.input
-            field={@form[:mass]}
-            type="number"
-            label="Spacecraft mass (kg)"
-            min="1"
-            max={@max_mass}
-            step="1"
-          />
+          <div class="card card-border bg-base-100 shadow-sm">
+            <.form
+              for={@form}
+              id="mission-form"
+              class="card-body gap-4 p-4 sm:p-6"
+              phx-change="validate"
+              phx-submit="validate"
+            >
+              <.input
+                field={@form[:mass]}
+                type="number"
+                label="Spacecraft mass (kg)"
+                min="1"
+                max={@max_mass}
+                step="1"
+              />
 
-          <.flight_path
-            field={@form[:steps]}
-            step_count={@step_count}
-            max_steps={@max_steps}
-            fuel={@fuel}
-            action_options={@action_options}
-            planet_options={@planet_options}
-          />
-        </.form>
+              <.flight_path
+                field={@form[:steps]}
+                step_count={@step_count}
+                max_steps={@max_steps}
+                fuel={@fuel}
+                action_options={@action_options}
+                planet_options={@planet_options}
+              />
+            </.form>
+          </div>
+        </div>
+
+        <.fuel_summary fuel={@fuel} step_count={@step_count} />
       </div>
-
-      <.fuel_summary fuel={@fuel} />
     </Layouts.app>
     """
   end
