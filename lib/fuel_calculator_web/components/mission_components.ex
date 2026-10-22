@@ -46,6 +46,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :max_steps, :integer, required: true
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
+
+  attr :warnings, :list,
+    default: [],
+    doc: "a warning or nil for each step (see `FuelCalculator.FlightPath.warnings/1`)"
+
   attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
@@ -74,6 +79,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             fuel={@fuel && Enum.at(@fuel.steps, step.index)}
             detail={@fuel && Enum.at(@fuel.details, step.index)}
             mass={@mass}
+            warning={Enum.at(@warnings, step.index)}
             focus={step.index == @focus_step}
             action_options={@action_options}
             planet_options={@planet_options}
@@ -113,7 +119,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders a step of the flight path: its number, action, planet and fuel, the
-  buttons that move and remove it, and how its fuel is calculated.
+  buttons that move and remove it, a warning when it can't follow the previous
+  step, and how its fuel is calculated.
 
   Moving or removing a step re-renders the rows by position, so the buttons also move
   the focus to the one that keeps the user's place, which exists before and after the
@@ -128,6 +135,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     doc: "how the step's fuel is calculated (see `FuelCalculator.Fuel.explain/2`), or nil"
 
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
+  attr :warning, :any, default: nil, doc: "why the step can't follow the previous one, or nil"
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
@@ -160,6 +168,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             prompt="Planet"
             options={@planet_options}
             aria-label={"Step #{@step.index + 1} planet"}
+            aria-describedby={@warning && "step-warning-#{@step.index}"}
           />
         </div>
         <%!-- Keeps its width while the mission is invalid, so the selects don't jump --%>
@@ -210,7 +219,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.icon name="hero-x-mark" class="size-5" />
         </.button>
       </div>
-      <.step_details index={@step.index} detail={@detail} mass={@mass} />
+      <%!-- Below the step's controls, from the second grid column: the row's grid flows
+           in columns, so list-col-wrap would only move it to the second row --%>
+      <div class="col-[2/4] row-start-2 -mt-2 space-y-2">
+        <.step_warning index={@step.index} warning={@warning} />
+        <.step_details index={@step.index} detail={@detail} mass={@mass} />
+      </div>
       <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
     </div>
     """
@@ -231,18 +245,45 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp remove_focus(index, _count), do: "#remove-step-#{index - 1}"
 
   attr :index, :integer, required: true
+  attr :warning, :any, default: nil
+
+  # Hidden rather than removed: inserting it would move the details after it, and
+  # moving the focused summary drops its focus
+  defp step_warning(assigns) do
+    ~H"""
+    <div
+      id={"step-warning-#{@index}"}
+      hidden={is_nil(@warning)}
+      class="flex items-start gap-2 rounded-box bg-warning/15 px-3 py-2 text-sm"
+    >
+      <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
+      <p>{@warning && warning_message(@warning, @index)} The fuel is still calculated.</p>
+    </div>
+    """
+  end
+
+  # Steps are numbered from 1, so the previous step's number is this step's index
+  defp warning_message({:launch_elsewhere, planet, landed_on}, index),
+    do:
+      "Launches from #{planet_name(planet)}, but step #{index} landed on #{planet_name(landed_on)}."
+
+  defp warning_message(:land_twice, index),
+    do: "Lands again without launching after step #{index}."
+
+  defp warning_message(:launch_twice, index),
+    do: "Launches again without landing after step #{index}."
+
+  attr :index, :integer, required: true
   attr :detail, :map, default: nil
   attr :mass, :integer, default: nil
 
   # Kept while the mission is invalid, so the rows don't shrink and an open one stays
-  # open. The browser sets "open", which every patch would remove. Below the step's
-  # controls, from the second grid column (the row's grid flows in columns, so
-  # list-col-wrap would only move it to the second row).
+  # open. The browser sets "open", which every patch would remove.
   defp step_details(assigns) do
     ~H"""
     <details
       id={"step-details-#{@index}"}
-      class="col-[2/4] row-start-2 -mt-2 text-sm"
+      class="text-sm"
       phx-mounted={JS.ignore_attributes("open")}
     >
       <summary class="w-fit cursor-pointer text-base-content/70 hover:text-base-content">

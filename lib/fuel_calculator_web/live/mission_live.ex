@@ -8,6 +8,7 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   import FuelCalculatorWeb.MissionComponents
 
+  alias FuelCalculator.FlightPath
   alias FuelCalculator.Mission
   alias FuelCalculator.Mission.Step
   alias FuelCalculator.Planet
@@ -112,6 +113,7 @@ defmodule FuelCalculatorWeb.MissionLive do
   # never takes the focus
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
+    steps = Ecto.Changeset.get_field(changeset, :steps)
 
     fuel =
       case Mission.calculate(changeset) do
@@ -124,7 +126,8 @@ defmodule FuelCalculatorWeb.MissionLive do
       mass: valid_mass(changeset),
       focus_step: nil,
       fuel: fuel,
-      step_count: length(Ecto.Changeset.get_field(changeset, :steps))
+      step_count: length(steps),
+      warnings: FlightPath.warnings(Enum.map(steps, &{&1.action, &1.planet}))
     )
   end
 
@@ -180,6 +183,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 max_steps={@max_steps}
                 fuel={@fuel}
                 mass={@mass}
+                warnings={@warnings}
                 focus_step={@focus_step}
                 action_options={@action_options}
                 planet_options={@planet_options}

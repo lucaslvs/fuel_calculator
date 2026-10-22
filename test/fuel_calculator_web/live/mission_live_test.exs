@@ -3,6 +3,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias FuelCalculator.Fuel
+
   # The missions of the challenge, also offered as examples (by id)
   @missions [
     {"apollo-11", 28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth],
@@ -389,6 +391,94 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#step-details-0", "Complete the mission to see the calculation")
       refute has_element?(view, "#step-details-0 [data-role]")
+    end
+  end
+
+  describe "flight path warnings" do
+    @inconsistent_path [launch: :earth, land: :moon, launch: :mars, land: :earth, land: :mars]
+
+    test "point out the steps that can't follow the previous one", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      assert has_element?(
+               view,
+               "#step-2 #step-warning-2:not([hidden])",
+               "Launches from Mars, but step 2 landed on the Moon."
+             )
+
+      assert has_element?(view, "#step-warning-2", "The fuel is still calculated.")
+
+      assert has_element?(
+               view,
+               "#step-warning-4:not([hidden])",
+               "Lands again without launching after step 4."
+             )
+
+      for index <- [0, 1, 3], do: assert(has_element?(view, "#step-warning-#{index}[hidden]"))
+    end
+
+    test "point out a launch right after another launch", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, launch: :moon))
+
+      assert has_element?(
+               view,
+               "#step-warning-1:not([hidden])",
+               "Launches again without landing after step 1."
+             )
+    end
+
+    test "never appear for the example missions", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      for {id, _mass, _path, _total} <- @missions do
+        view |> element("#example-#{id}") |> render_click()
+
+        refute has_element?(view, "[id^=step-warning-]:not([hidden])"), id
+      end
+    end
+
+    test "don't change the fuel or the validation", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      total =
+        FuelCalculatorWeb.MissionComponents.format_kg(Fuel.total(28_801, @inconsistent_path))
+
+      assert has_element?(view, "#total-fuel", total)
+      refute has_element?(view, "[aria-invalid]")
+      refute has_element?(view, "#steps-errors")
+    end
+
+    test "appear without a valid mass, but not for incomplete steps", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission("", land: :moon, launch: :mars))
+      assert has_element?(view, "#step-warning-1:not([hidden])")
+
+      change(view, %{
+        "mass" => "28801",
+        "steps_sort" => ["0", "1"],
+        "steps" => %{
+          "0" => %{"action" => "land", "planet" => "moon"},
+          "1" => %{"action" => "launch", "planet" => ""}
+        }
+      })
+
+      refute has_element?(view, "[id^=step-warning-]:not([hidden])")
+    end
+
+    test "describe the planet of the step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :moon, launch: :mars))
+
+      assert has_element?(view, "#mission_steps_1_planet[aria-describedby~=step-warning-1]")
+      refute has_element?(view, "#mission_steps_0_planet[aria-describedby]")
     end
   end
 
