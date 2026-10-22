@@ -111,9 +111,16 @@ defmodule FuelCalculatorWeb.MissionLive do
 
     assign(socket,
       form: to_form(changeset, action: :validate),
+      mass: valid_mass(changeset),
       fuel: fuel,
       step_count: length(Ecto.Changeset.get_field(changeset, :steps))
     )
+  end
+
+  defp valid_mass(changeset) do
+    if Keyword.has_key?(changeset.errors, :mass),
+      do: nil,
+      else: Ecto.Changeset.get_field(changeset, :mass)
   end
 
   @impl true
@@ -138,14 +145,23 @@ defmodule FuelCalculatorWeb.MissionLive do
               phx-change="validate"
               phx-submit="validate"
             >
-              <.input
-                field={@form[:mass]}
-                type="number"
-                label="Spacecraft mass (kg)"
-                min="1"
-                max={@max_mass}
-                step="1"
-              />
+              <div>
+                <.input
+                  field={@form[:mass]}
+                  type="number"
+                  label="Spacecraft mass"
+                  min="1"
+                  max={@max_mass}
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="e.g. 28801"
+                  phx-debounce="300"
+                  aria-describedby={@mass && "mass-hint"}
+                >
+                  <:suffix>kg</:suffix>
+                </.input>
+                <p :if={@mass} id="mass-hint" class="label tabular-nums">{format_kg(@mass)}</p>
+              </div>
 
               <.flight_path
                 field={@form[:steps]}

@@ -305,7 +305,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp steps_label(1), do: "1 step"
   defp steps_label(count), do: "#{count} steps"
 
-  defp format_kg(kg) do
+  @doc """
+  Formats a mass in kilograms with thousands separators, as in "28,801 kg".
+  """
+  def format_kg(kg) do
     Regex.replace(~r/\B(?=(\d{3})+(?!\d))/, Integer.to_string(kg), ",") <> " kg"
   end
 end

@@ -163,6 +163,16 @@ defmodule FuelCalculatorWeb.CoreComponents do
 
   For more information on what kind of data can be passed to `options` see
   [`options_for_select`](https://phoenix-html.hexdocs.pm/Phoenix.HTML.Form.html#options_for_select/2).
+
+  ## Suffix
+
+  Text inputs accept a `suffix` slot, such as a unit, rendered inside the input box.
+
+  ```heex
+  <.input field={@form[:mass]} type="number" label="Mass">
+    <:suffix>kg</:suffix>
+  </.input>
+  ```
   """
   attr :id, :any, default: nil
   attr :name, :any
@@ -188,6 +198,8 @@ defmodule FuelCalculatorWeb.CoreComponents do
   attr :rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required rows size step)
+
+  slot :suffix, doc: "text shown at the end of the input box, such as a unit"
 
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
@@ -274,6 +286,32 @@ defmodule FuelCalculatorWeb.CoreComponents do
           ]}
           {@rest}
         >{Form.normalize_value("textarea", @value)}</textarea>
+      </label>
+      <.error :for={msg <- @errors}>{msg}</.error>
+    </div>
+    """
+  end
+
+  # The input box is a span because the whole field is already inside a label
+  def input(%{suffix: [_ | _]} = assigns) do
+    ~H"""
+    <div class="fieldset mb-2">
+      <label for={@id}>
+        <span :if={@label} class="label mb-1">{@label}</span>
+        <span class={[
+          @class || "w-full input",
+          @errors != [] && (@error_class || "input-error")
+        ]}>
+          <input
+            type={@type}
+            name={@name}
+            id={@id}
+            value={Form.normalize_value(@type, @value)}
+            class="grow"
+            {@rest}
+          />
+          <span class="label">{render_slot(@suffix)}</span>
+        </span>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>

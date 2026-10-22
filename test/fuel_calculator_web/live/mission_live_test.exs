@@ -38,11 +38,60 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_mass[min='1'][max='1000000000000']")
     end
 
+    test "shows the mass unit and an example mass", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, ".input #mission_mass ~ .label", "kg")
+      assert has_element?(view, "#mission_mass[placeholder='e.g. 28801'][inputmode=numeric]")
+    end
+
+    test "waits for a pause in typing before recalculating", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#mission_mass[phx-debounce='300']")
+    end
+
     test "offers every action and planet", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       assert radio_values(view, "#mission_steps_0_action") == ["launch", "land"]
       assert option_values(view, "#mission_steps_0_planet") == ["", "earth", "moon", "mars"]
+    end
+  end
+
+  describe "mass hint" do
+    for {mass, hint} <- [{28_801, "28,801 kg"}, {1_000_000_000_000, "1,000,000,000,000 kg"}] do
+      test "formats the valid mass #{mass}", %{conn: conn} do
+        {:ok, view, _html} = live(conn, ~p"/")
+
+        change(view, mission(unquote(mass), land: :earth))
+
+        assert has_element?(view, "#mass-hint", unquote(hint))
+        assert has_element?(view, "#mission_mass[aria-describedby=mass-hint]")
+      end
+    end
+
+    test "is shown while the flight path is still incomplete", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps" => %{"0" => %{}}})
+
+      assert has_element?(view, "#total-fuel", "—")
+      assert has_element?(view, "#mass-hint", "28,801 kg")
+    end
+
+    test "is hidden without a valid mass", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "#mass-hint")
+
+      for mass <- ["", "0", "-1", "abc", "1000000000001"] do
+        change(view, mission(28_801, land: :earth))
+        change(view, mission(mass, land: :earth))
+
+        refute has_element?(view, "#mass-hint"), "mass #{inspect(mass)}"
+        refute has_element?(view, "#mission_mass[aria-describedby]"), "mass #{inspect(mass)}"
+      end
     end
   end
 
@@ -75,7 +124,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
         change(view, mission(mass, land: :earth))
 
-        assert has_element?(view, "#mission_mass.input-error"), "mass #{inspect(mass)}"
+        assert has_element?(view, ".input-error #mission_mass"), "mass #{inspect(mass)}"
         assert has_element?(view, "#total-fuel", "—"), "mass #{inspect(mass)}"
       end
     end
@@ -225,7 +274,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       |> element("#mission-form")
       |> render_submit(%{"mission" => %{"mass" => "", "steps_sort" => ["0"]}})
 
-      assert has_element?(view, "#mission_mass.input-error")
+      assert has_element?(view, ".input-error #mission_mass")
       assert has_element?(view, "#mission_steps_0_action[aria-invalid]")
       assert has_element?(view, "#mission_steps_0_action-error", "can't be blank")
       assert has_element?(view, "#mission_steps_0_planet.select-error")
