@@ -24,8 +24,24 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   @impl true
   def handle_event("validate", %{"mission" => params}, socket) do
-    {:noreply, assign_mission(socket, params)}
+    {:noreply, assign_mission(socket, swap_steps(params))}
   end
+
+  # The move buttons send steps_swap with the position of the step to swap with
+  # the next one, in the same change event as the steps_sort they reorder.
+  defp swap_steps(%{"steps_swap" => swap, "steps_sort" => sort} = params)
+       when is_binary(swap) and is_list(sort) do
+    case Integer.parse(swap) do
+      {position, ""} when position >= 0 and position < length(sort) - 1 ->
+        {before, [step, next | rest]} = Enum.split(sort, position)
+        %{params | "steps_sort" => before ++ [next, step | rest]}
+
+      _ ->
+        params
+    end
+  end
+
+  defp swap_steps(params), do: params
 
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
@@ -122,17 +138,43 @@ defmodule FuelCalculatorWeb.MissionLive do
                       </span>
                     </div>
                   </div>
-                  <.button
-                    id={"remove-step-#{step.index}"}
-                    type="button"
-                    name="mission[steps_drop][]"
-                    value={step.index}
-                    phx-click={JS.dispatch("change")}
-                    class="btn btn-ghost btn-square mt-1 hover:text-error"
-                    aria-label={"Remove step #{step.index + 1}"}
-                  >
-                    <.icon name="hero-x-mark" class="size-5" />
-                  </.button>
+                  <div class="join join-vertical mt-1 sm:join-horizontal">
+                    <.button
+                      id={"move-step-up-#{step.index}"}
+                      type="button"
+                      name="mission[steps_swap]"
+                      value={step.index - 1}
+                      phx-click={JS.dispatch("change")}
+                      disabled={step.index == 0}
+                      class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
+                      aria-label={"Move step #{step.index + 1} up"}
+                    >
+                      <.icon name="hero-chevron-up" class="size-5" />
+                    </.button>
+                    <.button
+                      id={"move-step-down-#{step.index}"}
+                      type="button"
+                      name="mission[steps_swap]"
+                      value={step.index}
+                      phx-click={JS.dispatch("change")}
+                      disabled={step.index == @step_count - 1}
+                      class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
+                      aria-label={"Move step #{step.index + 1} down"}
+                    >
+                      <.icon name="hero-chevron-down" class="size-5" />
+                    </.button>
+                    <.button
+                      id={"remove-step-#{step.index}"}
+                      type="button"
+                      name="mission[steps_drop][]"
+                      value={step.index}
+                      phx-click={JS.dispatch("change")}
+                      class="btn btn-ghost btn-sm btn-square join-item hover:text-error sm:btn-md"
+                      aria-label={"Remove step #{step.index + 1}"}
+                    >
+                      <.icon name="hero-x-mark" class="size-5" />
+                    </.button>
+                  </div>
                   <input type="hidden" name="mission[steps_sort][]" value={step.index} />
                 </div>
               </.inputs_for>
