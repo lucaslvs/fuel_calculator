@@ -11,8 +11,11 @@ defmodule FuelCalculatorWeb.Endpoint do
     same_site: "Lax"
   ]
 
+  # Websocket frames have no size limit by default; the largest mission event
+  # (15 steps) is about 4 KB. Longpoll has no such option, so Mission rejects
+  # oversized flight paths before casting them.
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
+    websocket: [connect_info: [session: @session_options], max_frame_size: 65_536],
     longpoll: [connect_info: [session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
