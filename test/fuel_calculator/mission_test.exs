@@ -2,6 +2,7 @@ defmodule FuelCalculator.MissionTest do
   use ExUnit.Case, async: true
 
   alias FuelCalculator.Mission
+  alias FuelCalculator.Mission.Step
 
   doctest Mission
 
@@ -76,6 +77,18 @@ defmodule FuelCalculator.MissionTest do
              }
     end
 
+    test "already in the mission must be valid when the params leave them untouched" do
+      changeset = Mission.changeset(%Mission{steps: [%Step{}]}, %{"mass" => "28801"})
+
+      assert errors_on(changeset) == %{steps: ["is invalid"]}
+    end
+
+    test "already in the mission are kept when the params leave them untouched" do
+      mission = %Mission{steps: [%Step{action: :land, planet: :earth}]}
+
+      assert Mission.calculate(Mission.changeset(mission, %{"mass" => "28801"})) == {:ok, 13_447}
+    end
+
     test "can be added as a blank step" do
       changeset =
         cast(%{"mass" => "28801", "steps" => @apollo_11, "steps_sort" => ~w(0 1 2 3 new)})
@@ -103,6 +116,18 @@ defmodule FuelCalculator.MissionTest do
         cast(%{"mass" => "28801", "steps" => @apollo_11, "steps_sort" => ~w(3 2 1 0)})
 
       assert path(changeset) == [land: :earth, launch: :moon, land: :moon, launch: :earth]
+    end
+  end
+
+  describe "calculate/1" do
+    test "returns the total fuel of a valid mission" do
+      assert Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11})) == {:ok, 51_898}
+    end
+
+    test "returns the changeset of an invalid mission with its errors" do
+      assert {:error, changeset} = Mission.calculate(cast(%{"mass" => "0"}))
+      assert changeset.action == :validate
+      assert errors_on(changeset) == %{mass: ["must be greater than 0"]}
     end
   end
 

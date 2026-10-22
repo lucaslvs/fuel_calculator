@@ -37,6 +37,27 @@ defmodule FuelCalculator.Mission do
     |> validate_required([:mass])
     |> validate_number(:mass, greater_than: 0, less_than_or_equal_to: @max_mass)
     |> cast_embed(:steps, sort_param: :steps_sort, drop_param: :steps_drop)
+    |> validate_untouched_steps()
+  end
+
+  # cast_embed/3 only validates the steps given in the params, so steps already in
+  # the mission that the params leave untouched would otherwise count as valid.
+  defp validate_untouched_steps(changeset) do
+    cond do
+      get_change(changeset, :steps) -> changeset
+      Enum.all?(changeset.data.steps, &Step.changeset(&1, %{}).valid?) -> changeset
+      true -> add_error(changeset, :steps, "is invalid")
+    end
+  end
+
+  @doc """
+  Validates a mission `changeset` and returns the total fuel the mission requires.
+  """
+  @spec calculate(Ecto.Changeset.t()) :: {:ok, non_neg_integer()} | {:error, Ecto.Changeset.t()}
+  def calculate(%Ecto.Changeset{} = changeset) do
+    with {:ok, mission} <- apply_action(changeset, :validate) do
+      {:ok, total_fuel(mission)}
+    end
   end
 
   @doc """
