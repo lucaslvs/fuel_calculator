@@ -33,8 +33,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   describe "total fuel" do
     for {name, mass, path, total} <- [
           {"Apollo 11", 28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth],
-           51_898},
-          {"Mars", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth], 33_388},
+           "51,898 kg"},
+          {"Mars", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth],
+           "33,388 kg"},
           {"passenger ship", 75_432,
            [
              launch: :earth,
@@ -43,15 +44,24 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
              land: :mars,
              launch: :mars,
              land: :earth
-           ], 212_161}
+           ], "212,161 kg"}
         ] do
       test "is calculated for the #{name} mission", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
         change(view, mission(unquote(mass), unquote(path)))
 
-        assert has_element?(view, "#total-fuel", "#{unquote(total)} kg")
+        assert has_element?(view, "#total-fuel", unquote(total))
       end
+    end
+
+    test "is formatted with thousands separators", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(1_000_000_000_000, launch: :earth, land: :earth))
+
+      assert has_element?(view, "#total-fuel", "1,513,973,496,138 kg")
+      assert has_element?(view, "#step-fuel-0", "1,035,490,598,312 kg")
     end
 
     test "is cleared when the mass becomes invalid", %{conn: conn} do
@@ -59,7 +69,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       for mass <- ["0", "-1", "abc"] do
         change(view, mission(28_801, land: :earth))
-        assert has_element?(view, "#total-fuel", "13447 kg")
+        assert has_element?(view, "#total-fuel", "13,447 kg")
 
         change(view, mission(mass, land: :earth))
 
@@ -72,7 +82,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, land: :earth))
-      assert has_element?(view, "#total-fuel", "13447 kg")
+      assert has_element?(view, "#total-fuel", "13,447 kg")
 
       change(view, %{
         "mass" => "28801",
@@ -82,6 +92,29 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#mission_steps_0_planet.select-error")
       assert has_element?(view, "#total-fuel", "—")
+    end
+  end
+
+  describe "step fuel" do
+    test "is shown for each step of a valid mission", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+
+      for {fuel, index} <- Enum.with_index(["32,988 kg", "2,462 kg", "3,001 kg", "13,447 kg"]) do
+        assert has_element?(view, "#step-#{index} #step-fuel-#{index}", fuel)
+      end
+    end
+
+    test "is hidden while the mission is invalid", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :moon, land: :earth))
+      assert has_element?(view, "#step-fuel-1")
+
+      change(view, mission("", land: :moon, land: :earth))
+
+      refute has_element?(view, "[id^=step-fuel-]")
     end
   end
 
@@ -142,7 +175,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#step-0")
       refute has_element?(view, "#step-1")
-      assert has_element?(view, "#total-fuel", "13447 kg")
+      assert has_element?(view, "#total-fuel", "13,447 kg")
     end
 
     test "removing the only step leaves an empty path that needs no fuel", %{conn: conn} do

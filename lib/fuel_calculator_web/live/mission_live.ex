@@ -111,6 +111,16 @@ defmodule FuelCalculatorWeb.MissionLive do
                         aria-label={"Step #{step.index + 1} planet"}
                       />
                     </div>
+                    <%!-- Keeps its width while the mission is invalid, so the selects don't jump --%>
+                    <div class="flex w-full items-center sm:mb-2 sm:w-auto sm:min-w-28 sm:justify-end sm:py-1">
+                      <span
+                        :if={@fuel}
+                        id={"step-fuel-#{step.index}"}
+                        class="badge badge-soft badge-primary mb-2 tabular-nums sm:mb-0"
+                      >
+                        {format_kg(Enum.at(@fuel.steps, step.index))}
+                      </span>
+                    </div>
                   </div>
                   <.button
                     id={"remove-step-#{step.index}"}
@@ -151,7 +161,7 @@ defmodule FuelCalculatorWeb.MissionLive do
           </div>
           <div class="stat-title">Total fuel required</div>
           <div id="total-fuel" class="stat-value tabular-nums">
-            {if @fuel, do: "#{@fuel.total} kg", else: "—"}
+            {if @fuel, do: format_kg(@fuel.total), else: "—"}
           </div>
           <div class="stat-desc">
             {if @fuel,
@@ -162,5 +172,9 @@ defmodule FuelCalculatorWeb.MissionLive do
       </div>
     </Layouts.app>
     """
+  end
+
+  defp format_kg(kg) do
+    Regex.replace(~r/\B(?=(\d{3})+(?!\d))/, Integer.to_string(kg), ",") <> " kg"
   end
 end
