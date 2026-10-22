@@ -113,7 +113,7 @@ defmodule FuelCalculator.MixProject do
         "deps.unlock --unused",
         "format",
         "credo --strict",
-        "test"
+        "test --cover"
       ]
     ]
   end

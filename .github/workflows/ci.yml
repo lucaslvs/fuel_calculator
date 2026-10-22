@@ -56,21 +56,28 @@ jobs:
       - run: mix format --check-formatted
       - run: mix deps.unlock --check-unused
       - run: mix credo --strict
-      - run: mix test
 
-      # Not enforced yet: `mix test --cover` exits non-zero below the threshold.
+      # Fails on test failures and below the coverage threshold. `shell: bash` adds
+      # pipefail; the default shell (`bash -e`) would return the exit status of `tee`.
       - name: Run tests with coverage
-        continue-on-error: true
+        id: cover
+        shell: bash
         run: mix test --cover | tee coverage.txt
 
       - name: Extract coverage
         id: coverage
+        if: ${{ !cancelled() && steps.cover.outcome != 'skipped' }}
         run: |
-          echo "percent=$(grep -E '\| Total' coverage.txt | grep -oE '[0-9]+\.[0-9]+')" >> "$GITHUB_OUTPUT"
+          percent=$(grep -E '\| Total' coverage.txt | grep -oE '[0-9]+\.[0-9]+' || true)
+          echo "percent=$percent" >> "$GITHUB_OUTPUT"
           {
             echo "## Test coverage"
             echo
-            sed -n '/| Percentage/,/| Total/p' coverage.txt
+            if [ -n "$percent" ]; then
+              sed -n '/| Percentage/,/| Total/p' coverage.txt
+            else
+              echo "No coverage report: the test run stopped before printing it."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update coverage badge

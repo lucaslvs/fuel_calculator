@@ -31,14 +31,14 @@ Then open [`localhost:4000`](http://localhost:4000).
 ## Quality checks
 
 ```sh
-mix precommit     # compile --warnings-as-errors, format, credo --strict, test
+mix precommit     # compile --warnings-as-errors, format, credo --strict, test --cover
 mix test --cover  # test coverage (90% threshold, HTML report in cover/)
 mix dialyzer      # static type analysis
 ```
 
-The same checks run on every push via GitHub Actions, which also publishes a
-per-module coverage summary and updates the coverage badge.
-The CI workflow also lints itself with [actionlint](https://github.com/rhysd/actionlint).
+The same checks run on every push via GitHub Actions, and the build fails below
+90% coverage. The workflow also publishes a per-module coverage summary, updates
+the coverage badge and lints itself with [actionlint](https://github.com/rhysd/actionlint).
 
 ## Deployment
 
