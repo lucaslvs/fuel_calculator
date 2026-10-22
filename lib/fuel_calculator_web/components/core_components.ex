@@ -242,11 +242,11 @@ defmodule FuelCalculatorWeb.CoreComponents do
             value="true"
             checked={@checked}
             class={@class || "checkbox checkbox-sm"}
-            {@rest}
+            {error_attrs(@rest, @errors, @id)}
           />{@label}
         </span>
       </label>
-      <.error :for={msg <- @errors}>{msg}</.error>
+      <.field_errors id={@id} errors={@errors} />
     </div>
     """
   end
@@ -261,13 +261,13 @@ defmodule FuelCalculatorWeb.CoreComponents do
           name={@name}
           class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
           multiple={@multiple}
-          {@rest}
+          {error_attrs(@rest, @errors, @id)}
         >
           <option :if={@prompt} value="">{@prompt}</option>
           {Form.options_for_select(@options, @value)}
         </select>
       </label>
-      <.error :for={msg <- @errors}>{msg}</.error>
+      <.field_errors id={@id} errors={@errors} />
     </div>
     """
   end
@@ -284,10 +284,10 @@ defmodule FuelCalculatorWeb.CoreComponents do
             @class || "w-full textarea",
             @errors != [] && (@error_class || "textarea-error")
           ]}
-          {@rest}
+          {error_attrs(@rest, @errors, @id)}
         >{Form.normalize_value("textarea", @value)}</textarea>
       </label>
-      <.error :for={msg <- @errors}>{msg}</.error>
+      <.field_errors id={@id} errors={@errors} />
     </div>
     """
   end
@@ -308,12 +308,12 @@ defmodule FuelCalculatorWeb.CoreComponents do
             id={@id}
             value={Form.normalize_value(@type, @value)}
             class="grow"
-            {@rest}
+            {error_attrs(@rest, @errors, @id)}
           />
           <span class="label">{render_slot(@suffix)}</span>
         </span>
       </label>
-      <.error :for={msg <- @errors}>{msg}</.error>
+      <.field_errors id={@id} errors={@errors} />
     </div>
     """
   end
@@ -333,9 +333,29 @@ defmodule FuelCalculatorWeb.CoreComponents do
             @class || "w-full input",
             @errors != [] && (@error_class || "input-error")
           ]}
-          {@rest}
+          {error_attrs(@rest, @errors, @id)}
         />
       </label>
+      <.field_errors id={@id} errors={@errors} />
+    </div>
+    """
+  end
+
+  # With errors, the input points to their messages, after any description it already has
+  defp error_attrs(rest, [], _id), do: rest
+
+  defp error_attrs(rest, _errors, id) do
+    describedby =
+      [rest[:"aria-describedby"], "#{id}-error"]
+      |> Enum.filter(&is_binary/1)
+      |> Enum.join(" ")
+
+    Map.merge(rest, %{"aria-invalid": "true", "aria-describedby": describedby})
+  end
+
+  defp field_errors(assigns) do
+    ~H"""
+    <div :if={@errors != []} id={"#{@id}-error"}>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
