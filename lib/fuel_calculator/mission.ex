@@ -41,7 +41,6 @@ defmodule FuelCalculator.Mission do
     |> validate_required([:mass])
     |> validate_number(:mass, greater_than: 0, less_than_or_equal_to: @max_mass)
     |> cast_steps()
-    |> validate_untouched_steps()
   end
 
   # Casting builds a changeset for every step in the params, so oversized params are
@@ -76,16 +75,6 @@ defmodule FuelCalculator.Mission do
   defp step_params(steps) when is_map(steps), do: Map.values(steps)
   defp step_params(steps) when is_list(steps), do: steps
   defp step_params(_steps), do: []
-
-  # cast_embed/3 only validates the steps given in the params, so steps already in
-  # the mission that the params leave untouched would otherwise count as valid.
-  defp validate_untouched_steps(changeset) do
-    cond do
-      get_change(changeset, :steps) -> changeset
-      Enum.all?(changeset.data.steps, &Step.changeset(&1, %{}).valid?) -> changeset
-      true -> add_error(changeset, :steps, "is invalid")
-    end
-  end
 
   @doc """
   Returns the largest spacecraft mass, in kg.

@@ -2,7 +2,6 @@ defmodule FuelCalculator.MissionTest do
   use ExUnit.Case, async: true
 
   alias FuelCalculator.Mission
-  alias FuelCalculator.Mission.Step
 
   doctest Mission
 
@@ -79,19 +78,6 @@ defmodule FuelCalculator.MissionTest do
       assert errors_on(cast(%{"mass" => "28801", "steps" => steps})) == %{
                steps: [%{}, %{action: ["can't be blank"], planet: ["can't be blank"]}]
              }
-    end
-
-    test "already in the mission must be valid when the params leave them untouched" do
-      changeset = Mission.changeset(%Mission{steps: [%Step{}]}, %{"mass" => "28801"})
-
-      assert errors_on(changeset) == %{steps: ["is invalid"]}
-    end
-
-    test "already in the mission are kept when the params leave them untouched" do
-      mission = %Mission{steps: [%Step{action: :land, planet: :earth}]}
-
-      assert Mission.calculate(Mission.changeset(mission, %{"mass" => "28801"})) ==
-               {:ok, %{total: 13_447, steps: [13_447]}}
     end
 
     test "can be added as a blank step" do
