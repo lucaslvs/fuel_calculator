@@ -40,6 +40,56 @@ The same checks run on every push via GitHub Actions, and the build fails below
 90% coverage. The workflow also publishes a per-module coverage summary, updates
 the coverage badge and lints itself with [actionlint](https://github.com/rhysd/actionlint).
 
+## Design decisions
+
+### Domain
+
+- `Fuel` and `Planet` are pure functions with no processes: the calculation has
+  no state, I/O or concurrency to manage.
+- A flight path is calculated from the last step to the first, because each step
+  carries the fuel of every later step as extra weight.
+- The formulas use floats and `floor`, as in the challenge. Mass is capped at
+  10^12 kg and the flight path at 15 steps, the longest path whose float results
+  still match exact integer arithmetic at that mass (measured on the heaviest
+  path, Earth launches only; a 16th launch is off by 2 kg).
+
+### Validation
+
+- `Mission` and `Mission.Step` are Ecto embedded schemas validated with
+  changesets; there is no database.
+- Actions and planets are `Ecto.Enum` fields, so form input is cast to known
+  atoms and never converted with `String.to_atom/1`.
+- An empty flight path is valid and needs 0 kg of fuel. New steps start blank, so
+  an incomplete step shows an error instead of a silent default.
+- A flight path has at most 15 steps. Longer params are rejected before Ecto
+  casts them, and the LiveView websocket accepts frames up to 64 KB, so a crafted
+  request cannot make the server build thousands of steps.
+
+### LiveView
+
+- A single LiveView at `/` renders the calculator and needs no parameters.
+- Steps are added, removed and reordered through Ecto's `sort_param` and
+  `drop_param` with `<.inputs_for>`: the form params are the only state, and
+  there are no custom JavaScript hooks.
+- The flight path is a regular assign, not a stream: it is a short list, and the
+  total is recalculated over all of it on every change.
+- Change and submit share one event, so pressing Enter recalculates and shows
+  every error instead of posting the form.
+- The fuel of each step appears only when the whole mission is valid, since each
+  step depends on the steps after it.
+
+### Quality
+
+- The three scenarios from the challenge are tested in the domain, the
+  validation and the LiveView.
+- CI compiles with warnings as errors and runs Credo in strict mode, Dialyzer and
+  the tests, and fails below 90% coverage.
+
+### Hosting
+
+- Gigalixir's free tier was the only zero-cost option found that keeps an
+  instance always on, so the demo has no cold start.
+
 ## Deployment
 
 The app runs on [Gigalixir](https://www.gigalixir.com)'s free tier at
@@ -56,7 +106,12 @@ Every push to `main` that passes CI is deployed by the `deploy` job in
 
 Changes that only touch documentation (`*.md`, `docs/`) skip CI and deployment.
 The same job also redeploys `main` on the 1st and 15th of each month, because
-Gigalixir's free tier scales apps down to 0 after 30 days without a deploy.
+Gigalixir's free tier scales apps down to 0 after 30 days without a deploy. That
+run skips the deploy if `main` has moved since it started, and when it fails,
+GitHub notifies only the user who last changed the `cron` line in the workflow.
+
+To roll back, list the releases with `gigalixir releases` and run
+`gigalixir releases:rollback` (the previous release, or `-r <version>`).
 
 Production needs these environment variables:
 

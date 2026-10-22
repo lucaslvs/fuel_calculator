@@ -69,9 +69,13 @@ tests `GET /` and the LiveView websocket at `/live`.
 - `GET /` must render without parameters or session state; the smoke test and a
   reviewer's first visit depend on it
 - Inspect production with `gigalixir ps` and `gigalixir logs --no-tail -n 200`
-  (plain `gigalixir logs` follows the stream forever)
-- Changing production (`gigalixir config:set`, scaling, restarts, deleting apps)
-  is outward-facing: ask before doing it
+  (plain `gigalixir logs` follows the stream forever); roll back with
+  `gigalixir releases` and `gigalixir releases:rollback [-r <version>]`
+- A failed scheduled run notifies only the user who last changed the `cron` line
+  in `ci.yml`; the keep-alive skips the deploy when `main` has moved since the run
+  started
+- Changing production (`gigalixir config:set`, scaling, restarts, rollbacks,
+  deleting apps) is outward-facing: ask before doing it
 
 ## Git workflow
 
