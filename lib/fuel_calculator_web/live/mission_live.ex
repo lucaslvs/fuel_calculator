@@ -38,8 +38,8 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   @impl true
-  def handle_event("validate", %{"mission" => params}, socket) do
-    {:noreply, assign_mission(socket, swap_steps(params))}
+  def handle_event("validate", %{"mission" => %{} = params}, socket) do
+    {:noreply, assign_mission(socket, params |> form_params() |> swap_steps())}
   end
 
   def handle_event("load_example", %{"id" => id}, socket) do
@@ -49,6 +49,9 @@ defmodule FuelCalculatorWeb.MissionLive do
     end
   end
 
+  # Events come from the client and may have been crafted
+  def handle_event(_event, _params, socket), do: {:noreply, socket}
+
   defp mission_params(mass, path) do
     steps =
       for {{action, planet}, index} <- Enum.with_index(path), into: %{} do
@@ -56,6 +59,27 @@ defmodule FuelCalculatorWeb.MissionLive do
       end
 
     %{"mass" => "#{mass}", "steps" => steps}
+  end
+
+  # Form inputs render their params back, which only works for the strings the form
+  # sends, so a crafted event's other values are dropped.
+  defp form_params(params) do
+    params
+    |> strings_only(~w(steps steps_sort steps_drop))
+    |> Map.replace_lazy("steps", &form_steps/1)
+  end
+
+  defp form_steps(steps) when is_map(steps),
+    do: Map.new(steps, fn {k, v} -> {k, form_step(v)} end)
+
+  defp form_steps(steps) when is_list(steps), do: Enum.map(steps, &form_step/1)
+  defp form_steps(steps), do: steps
+
+  defp form_step(step) when is_map(step), do: strings_only(step, [])
+  defp form_step(step), do: step
+
+  defp strings_only(params, except) do
+    Map.filter(params, fn {key, value} -> is_binary(value) or key in except end)
   end
 
   # The move buttons send steps_swap with the position of the step to swap with

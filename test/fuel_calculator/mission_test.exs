@@ -116,6 +116,27 @@ defmodule FuelCalculator.MissionTest do
       assert path(changeset) == [launch: :earth, launch: :moon, land: :earth]
     end
 
+    test "must be given as maps" do
+      for steps <- [%{"0" => ["x"]}, %{"0" => []}, [["x"]]] do
+        assert errors_on(cast(%{"mass" => "28801", "steps" => steps})) == %{
+                 steps: ["is invalid"]
+               }
+      end
+    end
+
+    test "ignore an order or removal that is not a list" do
+      changeset =
+        cast(%{
+          "mass" => "28801",
+          "steps" => @apollo_11,
+          "steps_sort" => "x",
+          "steps_drop" => %{"0" => "x"}
+        })
+
+      assert changeset.valid?
+      assert path(changeset) == [launch: :earth, land: :moon, launch: :moon, land: :earth]
+    end
+
     test "can be reordered" do
       changeset =
         cast(%{"mass" => "28801", "steps" => @apollo_11, "steps_sort" => ~w(3 2 1 0)})

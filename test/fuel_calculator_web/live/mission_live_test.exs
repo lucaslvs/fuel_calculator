@@ -213,6 +213,47 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
+  describe "malformed events" do
+    # render_hook sends the params as they are, without the form's inputs
+    test "are ignored or rejected without crashing the view", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+
+      for {event, params} <- [
+            {"validate", %{"mission" => "x"}},
+            {"validate", %{}},
+            {"load_example", %{}},
+            {"unknown", %{"id" => "apollo-11"}}
+          ] do
+        render_hook(view, event, params)
+
+        assert has_element?(view, "#total-fuel", "13,447 kg"),
+               "#{event} #{inspect(params)} changed the mission"
+      end
+
+      for params <- [
+            %{"mass" => "28801", "steps_sort" => "x", "steps" => "x"},
+            %{"mass" => "28801", "steps_drop" => "x", "steps" => %{"0" => ["x"]}},
+            %{"mass" => %{"x" => "1"}, "steps" => [%{"action" => ["x"]}]},
+            %{
+              "mass" => ["28801"],
+              "steps_swap" => %{},
+              "steps" => %{
+                "0" => %{"_persistent_id" => %{}, "action" => %{"x" => "1"}, "planet" => [%{}]}
+              }
+            }
+          ] do
+        render_hook(view, "validate", %{"mission" => params})
+
+        assert has_element?(view, "#total-fuel", "—"), "#{inspect(params)} was accepted"
+      end
+
+      change(view, mission(28_801, land: :earth))
+      assert has_element?(view, "#total-fuel", "13,447 kg")
+    end
+  end
+
   # The add, move and remove buttons trigger a form change through JS, which
   # LiveViewTest does not run, so these tests send the steps_sort, steps_swap and
   # steps_drop values the buttons add to the form. Moved steps are checked by row,

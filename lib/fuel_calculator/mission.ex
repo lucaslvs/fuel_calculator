@@ -45,25 +45,37 @@ defmodule FuelCalculator.Mission do
   end
 
   # Casting builds a changeset for every step in the params, so oversized params are
-  # rejected before casting. cast/3 has already turned the params keys into strings.
+  # rejected before casting, and it raises on a step given as a list instead of a map.
+  # cast/3 has already turned the params keys into strings.
   defp cast_steps(%{params: params} = changeset) do
-    if max(param_length(params["steps"]), param_length(params["steps_sort"])) > @max_steps do
-      add_error(changeset, :steps, "should have at most %{count} item(s)",
-        count: @max_steps,
-        validation: :length,
-        kind: :max,
-        type: :list
-      )
-    else
-      changeset
-      |> cast_embed(:steps, sort_param: :steps_sort, drop_param: :steps_drop)
-      |> validate_length(:steps, max: @max_steps)
+    steps = params["steps"]
+
+    cond do
+      max(param_length(steps), param_length(params["steps_sort"])) > @max_steps ->
+        add_error(changeset, :steps, "should have at most %{count} item(s)",
+          count: @max_steps,
+          validation: :length,
+          kind: :max,
+          type: :list
+        )
+
+      Enum.any?(step_params(steps), &is_list/1) ->
+        add_error(changeset, :steps, "is invalid")
+
+      true ->
+        changeset
+        |> cast_embed(:steps, sort_param: :steps_sort, drop_param: :steps_drop)
+        |> validate_length(:steps, max: @max_steps)
     end
   end
 
   defp param_length(steps) when is_map(steps), do: map_size(steps)
   defp param_length(steps) when is_list(steps), do: length(steps)
   defp param_length(_steps), do: 0
+
+  defp step_params(steps) when is_map(steps), do: Map.values(steps)
+  defp step_params(steps) when is_list(steps), do: steps
+  defp step_params(_steps), do: []
 
   # cast_embed/3 only validates the steps given in the params, so steps already in
   # the mission that the params leave untouched would otherwise count as valid.
