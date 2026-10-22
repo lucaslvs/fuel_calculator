@@ -181,7 +181,21 @@ jobs:
       - name: Smoke test
         if: env.SKIP_DEPLOY != 'true'
         run: |
-          curl -sf -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors --max-time 10 "$APP_URL/"
+          page=$(curl -sf --retry 5 --retry-delay 3 --retry-all-errors --max-time 10 "$APP_URL/")
+          # Every local asset the page links (stylesheet, script, favicon) must be served
+          assets=$(grep -oE '(href|src)="/[^/"][^"]*"' <<< "$page" | cut -d '"' -f 2 | sort -u)
+          if [ -z "$assets" ]; then
+            echo "::error::GET / links no local assets"
+            exit 1
+          fi
+          while read -r asset; do
+            code=$(curl -s -o /dev/null --retry 3 --retry-delay 2 --max-time 10 \
+              -w '%{http_code}' "$APP_URL$asset" || true)
+            if [ "$code" != 200 ]; then
+              echo "::error::$asset returned HTTP $code"
+              exit 1
+            fi
+          done <<< "$assets"
           for _ in $(seq 5); do
             # The upgraded socket stays open, so curl always ends on --max-time.
             code=$(curl -s -o /dev/null --http1.1 --max-time 5 -w '%{http_code}' \
