@@ -32,6 +32,63 @@ defmodule FuelCalculator.FuelTest do
     end
   end
 
+  describe "iterations/3" do
+    test "returns the fuel for the mass, then for each amount of fuel" do
+      assert Fuel.iterations(28_801, :land, :earth) == [9278, 2960, 915, 254, 40]
+    end
+
+    test "returns no fuel when the mass needs none" do
+      assert Fuel.iterations(80, :launch, :earth) == []
+    end
+
+    test "stops when the fuel itself needs no more fuel" do
+      assert Fuel.iterations(83, :launch, :earth) == [1]
+    end
+
+    test "rejects a mass that is not positive" do
+      assert_raise FunctionClauseError, fn -> Fuel.iterations(0, :land, :earth) end
+      assert_raise FunctionClauseError, fn -> Fuel.iterations(-1, :land, :earth) end
+    end
+  end
+
+  describe "formula/1" do
+    test "returns the factor and the offset of each action" do
+      assert Fuel.formula(:launch) == {0.042, 33}
+      assert Fuel.formula(:land) == {0.033, 42}
+    end
+  end
+
+  describe "explain/2" do
+    test "returns the mass and the fuel iterations of each Apollo 11 step" do
+      path = [launch: :earth, land: :moon, launch: :moon, land: :earth]
+
+      assert Fuel.explain(28_801, path) == [
+               %{
+                 action: :launch,
+                 planet: :earth,
+                 mass: 47_711,
+                 iterations: [19_618, 8047, 3281, 1318, 509, 176, 39]
+               },
+               %{action: :land, planet: :moon, mass: 45_249, iterations: [2377, 85]},
+               %{action: :launch, planet: :moon, mass: 42_248, iterations: [2841, 160]},
+               %{
+                 action: :land,
+                 planet: :earth,
+                 mass: 28_801,
+                 iterations: [9278, 2960, 915, 254, 40]
+               }
+             ]
+    end
+
+    test "returns no steps for an empty path" do
+      assert Fuel.explain(28_801, []) == []
+    end
+
+    test "rejects a mass that is not positive" do
+      assert_raise FunctionClauseError, fn -> Fuel.explain(0, []) end
+    end
+  end
+
   describe "breakdown/2" do
     test "returns the fuel of each Apollo 11 step" do
       path = [launch: :earth, land: :moon, launch: :moon, land: :earth]

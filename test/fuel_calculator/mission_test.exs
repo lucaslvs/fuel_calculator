@@ -1,6 +1,7 @@
 defmodule FuelCalculator.MissionTest do
   use ExUnit.Case, async: true
 
+  alias FuelCalculator.Fuel
   alias FuelCalculator.Mission
 
   doctest Mission
@@ -180,8 +181,8 @@ defmodule FuelCalculator.MissionTest do
 
   describe "calculate/1" do
     test "returns the fuel of a valid mission" do
-      assert Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11})) ==
-               {:ok, %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}}
+      assert {:ok, %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}} =
+               Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11}))
     end
 
     test "returns the changeset of an invalid mission with its errors" do
@@ -193,8 +194,11 @@ defmodule FuelCalculator.MissionTest do
 
   describe "fuel/1" do
     test "calculates the Apollo 11 mission" do
-      assert fuel(%{"mass" => "28801", "steps" => @apollo_11}) ==
-               %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}
+      assert %{total: 51_898, steps: [32_988, 2462, 3001, 13_447], details: details} =
+               fuel(%{"mass" => "28801", "steps" => @apollo_11})
+
+      assert details ==
+               Fuel.explain(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth)
     end
 
     test "calculates the Mars mission" do
@@ -222,7 +226,7 @@ defmodule FuelCalculator.MissionTest do
     end
 
     test "requires no fuel for an empty path" do
-      assert fuel(%{"mass" => "28801"}) == %{total: 0, steps: []}
+      assert fuel(%{"mass" => "28801"}) == %{total: 0, steps: [], details: []}
     end
   end
 end

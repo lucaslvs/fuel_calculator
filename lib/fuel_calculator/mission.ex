@@ -20,7 +20,11 @@ defmodule FuelCalculator.Mission do
   @max_steps 15
 
   @type t :: %__MODULE__{mass: pos_integer() | nil, steps: [Step.t()]}
-  @type fuel :: %{total: non_neg_integer(), steps: [non_neg_integer()]}
+  @type fuel :: %{
+          total: non_neg_integer(),
+          steps: [non_neg_integer()],
+          details: [Fuel.detail()]
+        }
 
   @primary_key false
   embedded_schema do
@@ -99,13 +103,14 @@ defmodule FuelCalculator.Mission do
   end
 
   @doc """
-  Returns the fuel required to fly a valid `mission`: the total and the fuel
-  of each step, in the order of the flight path.
+  Returns the fuel required to fly a valid `mission`: the total, the fuel of
+  each step and how it is calculated (see `FuelCalculator.Fuel.explain/2`), in
+  the order of the flight path.
 
   ## Examples
 
       iex> alias FuelCalculator.Mission.Step
-      iex> FuelCalculator.Mission.fuel(%FuelCalculator.Mission{
+      iex> fuel = FuelCalculator.Mission.fuel(%FuelCalculator.Mission{
       ...>   mass: 28801,
       ...>   steps: [
       ...>     %Step{action: :launch, planet: :earth},
@@ -114,12 +119,14 @@ defmodule FuelCalculator.Mission do
       ...>     %Step{action: :land, planet: :earth}
       ...>   ]
       ...> })
-      %{total: 51898, steps: [32988, 2462, 3001, 13447]}
+      iex> {fuel.total, fuel.steps}
+      {51898, [32988, 2462, 3001, 13447]}
 
   """
   @spec fuel(t()) :: fuel()
   def fuel(%__MODULE__{mass: mass, steps: steps}) do
-    step_fuels = Fuel.breakdown(mass, Enum.map(steps, &{&1.action, &1.planet}))
-    %{total: Enum.sum(step_fuels), steps: step_fuels}
+    details = Fuel.explain(mass, Enum.map(steps, &{&1.action, &1.planet}))
+    step_fuels = Enum.map(details, &Enum.sum(&1.iterations))
+    %{total: Enum.sum(step_fuels), steps: step_fuels, details: details}
   end
 end

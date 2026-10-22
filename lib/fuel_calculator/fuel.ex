@@ -11,6 +11,13 @@ defmodule FuelCalculator.Fuel do
   @type action :: :launch | :land
   @type step :: {action(), Planet.t()}
 
+  @type detail :: %{
+          action: action(),
+          planet: Planet.t(),
+          mass: pos_integer(),
+          iterations: [pos_integer()]
+        }
+
   @doc """
   Returns the fuel required for a single `action` on `planet` with `mass`,
   including the fuel needed to carry that fuel.
@@ -22,12 +29,66 @@ defmodule FuelCalculator.Fuel do
 
   """
   @spec step_fuel(pos_integer(), action(), Planet.t()) :: non_neg_integer()
-  def step_fuel(mass, action, planet)
+  def step_fuel(mass, action, planet), do: mass |> iterations(action, planet) |> Enum.sum()
+
+  @doc """
+  Returns the fuel required for `mass`, then for each amount of fuel in turn,
+  until the additional amount is zero or negative. Their sum is `step_fuel/3`.
+
+  ## Examples
+
+      iex> FuelCalculator.Fuel.iterations(28801, :land, :earth)
+      [9278, 2960, 915, 254, 40]
+
+  """
+  @spec iterations(pos_integer(), action(), Planet.t()) :: [pos_integer()]
+  def iterations(mass, action, planet)
       when is_integer(mass) and mass > 0 and action in [:launch, :land] do
     case base_fuel(mass, action, Planet.gravity(planet)) do
-      fuel when fuel > 0 -> fuel + step_fuel(fuel, action, planet)
-      _ -> 0
+      fuel when fuel > 0 -> [fuel | iterations(fuel, action, planet)]
+      _ -> []
     end
+  end
+
+  @doc """
+  Returns the factor and the offset of the formula for `action`: the fuel for a
+  mass is `mass * gravity * factor - offset`, rounded down.
+
+  ## Examples
+
+      iex> FuelCalculator.Fuel.formula(:land)
+      {0.033, 42}
+
+  """
+  @spec formula(action()) :: {float(), pos_integer()}
+  def formula(:launch), do: {0.042, 33}
+  def formula(:land), do: {0.033, 42}
+
+  @doc """
+  Returns how the fuel of each step is calculated when flying `mass` along
+  `path`, in the order of the path: the mass the step carries, which includes
+  the fuel for the later steps, and the `iterations/3` for that mass.
+
+  ## Examples
+
+      iex> FuelCalculator.Fuel.explain(28801, [{:launch, :moon}, {:land, :earth}])
+      [
+        %{action: :launch, planet: :moon, mass: 42248, iterations: [2841, 160]},
+        %{action: :land, planet: :earth, mass: 28801, iterations: [9278, 2960, 915, 254, 40]}
+      ]
+
+  """
+  @spec explain(pos_integer(), [step()]) :: [detail()]
+  def explain(mass, path) when is_integer(mass) and mass > 0 and is_list(path) do
+    path
+    |> Enum.reverse()
+    |> Enum.map_reduce(0, fn {action, planet}, carried ->
+      iterations = iterations(mass + carried, action, planet)
+      detail = %{action: action, planet: planet, mass: mass + carried, iterations: iterations}
+      {detail, carried + Enum.sum(iterations)}
+    end)
+    |> elem(0)
+    |> Enum.reverse()
   end
 
   @doc """
@@ -50,14 +111,7 @@ defmodule FuelCalculator.Fuel do
   """
   @spec breakdown(pos_integer(), [step()]) :: [non_neg_integer()]
   def breakdown(mass, path) when is_integer(mass) and mass > 0 and is_list(path) do
-    path
-    |> Enum.reverse()
-    |> Enum.map_reduce(0, fn {action, planet}, carried ->
-      fuel = step_fuel(mass + carried, action, planet)
-      {fuel, carried + fuel}
-    end)
-    |> elem(0)
-    |> Enum.reverse()
+    for %{iterations: iterations} <- explain(mass, path), do: Enum.sum(iterations)
   end
 
   @doc """
@@ -79,6 +133,8 @@ defmodule FuelCalculator.Fuel do
     mass |> breakdown(path) |> Enum.sum()
   end
 
-  defp base_fuel(mass, :launch, gravity), do: floor(mass * gravity * 0.042 - 33)
-  defp base_fuel(mass, :land, gravity), do: floor(mass * gravity * 0.033 - 42)
+  defp base_fuel(mass, action, gravity) do
+    {factor, offset} = formula(action)
+    floor(mass * gravity * factor - offset)
+  end
 end
