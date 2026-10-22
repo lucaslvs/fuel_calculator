@@ -269,6 +269,129 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
+  describe "fuel explanation" do
+    test "shows the mass, the formula and the iterations of each step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+
+      assert has_element?(view, "#step-3 #step-details-3 summary", "How 13,447 kg is calculated")
+      assert has_element?(view, "#step-details-3 [data-role=mass]", "28,801 kg (no later steps)")
+
+      assert has_element?(
+               view,
+               "#step-details-3 [data-role=formula]",
+               "Land on Earth: mass × 9.807 × 0.033 − 42"
+             )
+
+      assert has_element?(
+               view,
+               "#step-details-3 [data-role=iterations]",
+               "9,278 + 2,960 + 915 + 254 + 40 = 13,447 kg"
+             )
+
+      assert has_element?(
+               view,
+               "#step-details-0 [data-role=mass]",
+               "28,801 kg spacecraft + 18,910 kg of fuel for the later steps = 47,711 kg"
+             )
+
+      assert has_element?(
+               view,
+               "#step-details-0 [data-role=formula]",
+               "Launch from Earth: mass × 9.807 × 0.042 − 33"
+             )
+
+      assert has_element?(
+               view,
+               "#step-details-1 [data-role=formula]",
+               "Land on the Moon: mass × 1.62 × 0.033 − 42"
+             )
+    end
+
+    test "starts closed and keeps the open state the browser sets", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+
+      refute has_element?(view, "#step-details-0[open]")
+      assert ["ignore_attrs", %{"attrs" => ["open"]}] in mounted_js(view, "#step-details-0")
+    end
+
+    test "names each step for screen readers", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :moon, land: :earth))
+
+      assert has_element?(view, "#step-details-0 summary .sr-only", "in step 1")
+      assert has_element?(view, "#step-details-1 summary .sr-only", "in step 2")
+    end
+
+    test "says when a step needs no fuel", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(100, land: :moon))
+
+      assert has_element?(view, "#step-details-0 summary", "How 0 kg is calculated")
+      assert has_element?(view, "#step-details-0 [data-role=iterations]", "No fuel needed")
+    end
+
+    test "shows a single iteration without a sum", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(83, launch: :earth))
+
+      assert has_element?(view, "#step-details-0 [data-role=iterations]", "1 kg")
+      refute has_element?(view, "#step-details-0 [data-role=iterations]", "=")
+    end
+
+    test "shows every iteration of the heaviest step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(1_000_000_000_000, launch: :earth))
+
+      assert has_element?(
+               view,
+               "#step-details-0 [data-role=iterations]",
+               "411,893,999,967 + 169,656,667,189 + 69,880,563,242 + 28,783,384,683"
+             )
+
+      assert has_element?(
+               view,
+               "#step-details-0 [data-role=iterations]",
+               "+ 1,324 + 512 + 177 + 39 = 700,373,740,645 kg"
+             )
+    end
+
+    test "stays in every step while the mission is invalid", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{
+        "mass" => "28801",
+        "steps_sort" => ["0", "1"],
+        "steps" => %{
+          "0" => %{"action" => "land", "planet" => "moon"},
+          "1" => %{"action" => "land", "planet" => ""}
+        }
+      })
+
+      for index <- 0..1 do
+        assert has_element?(view, "#step-details-#{index} summary", "How the fuel is calculated")
+
+        assert has_element?(
+                 view,
+                 "#step-details-#{index}",
+                 "Complete the mission to see the calculation"
+               )
+      end
+
+      change(view, mission("", land: :moon))
+
+      assert has_element?(view, "#step-details-0", "Complete the mission to see the calculation")
+      refute has_element?(view, "#step-details-0 [data-role]")
+    end
+  end
+
   describe "validation" do
     test "hides errors of steps the user has not touched", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
@@ -367,7 +490,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "moves to the step added with Add step, once", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      refute has_element?(view, "#steps [phx-mounted]")
+      refute has_element?(view, "#steps .list-row[phx-mounted]")
 
       change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
 
@@ -376,7 +499,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, %{"mass" => "28802", "steps_sort" => ["0", "1"]})
 
-      refute has_element?(view, "#steps [phx-mounted]")
+      refute has_element?(view, "#steps .list-row[phx-mounted]")
     end
 
     test "stays put when an example is loaded", %{conn: conn} do
@@ -385,7 +508,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
       view |> element("#example-apollo-11") |> render_click()
 
-      refute has_element?(view, "#steps [phx-mounted]")
+      refute has_element?(view, "#steps .list-row[phx-mounted]")
     end
 
     test "moves to Add step when the only step is removed", %{conn: conn} do
@@ -633,6 +756,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     |> hd()
     |> JSON.decode!()
     |> Enum.find_value(fn [kind, args] -> if kind == "focus", do: args["to"] end)
+  end
+
+  defp mounted_js(view, selector) do
+    view
+    |> render()
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query(selector)
+    |> LazyHTML.attribute("phx-mounted")
+    |> hd()
+    |> JSON.decode!()
   end
 
   defp change(view, params) do

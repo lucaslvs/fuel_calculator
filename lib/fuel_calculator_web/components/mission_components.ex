@@ -9,6 +9,9 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   use FuelCalculatorWeb, :html
 
+  alias FuelCalculator.Fuel
+  alias FuelCalculator.Planet
+
   @doc """
   Renders a button per example mission, which sends `load_example` with its id.
   """
@@ -42,6 +45,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :step_count, :integer, required: true
   attr :max_steps, :integer, required: true
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
+  attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
@@ -68,6 +72,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
             step={step}
             step_count={@step_count}
             fuel={@fuel && Enum.at(@fuel.steps, step.index)}
+            detail={@fuel && Enum.at(@fuel.details, step.index)}
+            mass={@mass}
             focus={step.index == @focus_step}
             action_options={@action_options}
             planet_options={@planet_options}
@@ -106,8 +112,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
   end
 
   @doc """
-  Renders a step of the flight path: its number, action, planet and fuel, and the
-  buttons that move and remove it.
+  Renders a step of the flight path: its number, action, planet and fuel, the
+  buttons that move and remove it, and how its fuel is calculated.
 
   Moving or removing a step re-renders the rows by position, so the buttons also move
   the focus to the one that keeps the user's place, which exists before and after the
@@ -116,6 +122,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :step, Phoenix.HTML.Form, required: true, doc: "the step's form, from `inputs_for`"
   attr :step_count, :integer, required: true
   attr :fuel, :integer, default: nil, doc: "the step's fuel, or nil while the mission is invalid"
+
+  attr :detail, :map,
+    default: nil,
+    doc: "how the step's fuel is calculated (see `FuelCalculator.Fuel.explain/2`), or nil"
+
+  attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
   attr :action_options, :list, required: true
   attr :planet_options, :list, required: true
@@ -198,6 +210,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.icon name="hero-x-mark" class="size-5" />
         </.button>
       </div>
+      <.step_details index={@step.index} detail={@detail} mass={@mass} />
       <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
     </div>
     """
@@ -216,6 +229,69 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp remove_focus(0, 1), do: "#add-step"
   defp remove_focus(0, _count), do: nil
   defp remove_focus(index, _count), do: "#remove-step-#{index - 1}"
+
+  attr :index, :integer, required: true
+  attr :detail, :map, default: nil
+  attr :mass, :integer, default: nil
+
+  # Kept while the mission is invalid, so the rows don't shrink and an open one stays
+  # open. The browser sets "open", which every patch would remove. Below the step's
+  # controls, from the second grid column (the row's grid flows in columns, so
+  # list-col-wrap would only move it to the second row).
+  defp step_details(assigns) do
+    ~H"""
+    <details
+      id={"step-details-#{@index}"}
+      class="col-[2/4] row-start-2 -mt-2 text-sm"
+      phx-mounted={JS.ignore_attributes("open")}
+    >
+      <summary class="w-fit cursor-pointer text-base-content/70 hover:text-base-content">
+        {if @detail,
+          do: "How #{format_kg(Enum.sum(@detail.iterations))} is calculated",
+          else: "How the fuel is calculated"}<span class="sr-only"> in step {@index + 1}</span>
+      </summary>
+      <div class="mt-2 space-y-1 rounded-box bg-base-200 p-3 tabular-nums wrap-anywhere">
+        <%= if @detail do %>
+          <p data-role="mass">{carried_mass(@detail.mass, @mass)}</p>
+          <p data-role="formula">{formula(@detail.action, @detail.planet)}</p>
+          <p data-role="iterations">
+            <%= case @detail.iterations do %>
+              <% [] -> %>
+                No fuel needed: the formula gives zero or less for this mass.
+              <% [fuel] -> %>
+                <strong>{format_kg(fuel)}</strong>
+              <% iterations -> %>
+                {Enum.map_join(iterations, " + ", &format_number/1)} =
+                <strong>{format_kg(Enum.sum(iterations))}</strong>
+            <% end %>
+          </p>
+        <% else %>
+          <p>Complete the mission to see the calculation.</p>
+        <% end %>
+      </div>
+    </details>
+    """
+  end
+
+  defp carried_mass(mass, mass), do: "Mass: #{format_kg(mass)} (no later steps)"
+
+  defp carried_mass(mass, spacecraft) do
+    "Mass: #{format_kg(spacecraft)} spacecraft + #{format_kg(mass - spacecraft)} " <>
+      "of fuel for the later steps = #{format_kg(mass)}"
+  end
+
+  defp formula(action, planet) do
+    {factor, offset} = Fuel.formula(action)
+
+    "#{action_on(action, planet)}: mass × #{Planet.gravity(planet)} × #{factor} − #{offset}, " <>
+      "rounded down, then again on that fuel until it is zero or less"
+  end
+
+  defp action_on(:launch, planet), do: "Launch from #{planet_name(planet)}"
+  defp action_on(:land, planet), do: "Land on #{planet_name(planet)}"
+
+  defp planet_name(:moon), do: "the Moon"
+  defp planet_name(planet), do: planet |> Atom.to_string() |> String.capitalize()
 
   @doc """
   Renders a step's action as a group of radio buttons, one per action.
@@ -342,7 +418,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
   @doc """
   Formats a mass in kilograms with thousands separators, as in "28,801 kg".
   """
-  def format_kg(kg) do
-    Regex.replace(~r/\B(?=(\d{3})+(?!\d))/, Integer.to_string(kg), ",") <> " kg"
+  def format_kg(kg), do: format_number(kg) <> " kg"
+
+  @doc """
+  Formats an integer with thousands separators, as in "28,801".
+  """
+  def format_number(number) do
+    Regex.replace(~r/\B(?=(\d{3})+(?!\d))/, Integer.to_string(number), ",")
   end
 end

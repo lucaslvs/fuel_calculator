@@ -179,6 +179,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 step_count={@step_count}
                 max_steps={@max_steps}
                 fuel={@fuel}
+                mass={@mass}
                 focus_step={@focus_step}
                 action_options={@action_options}
                 planet_options={@planet_options}
