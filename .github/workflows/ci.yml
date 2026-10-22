@@ -110,6 +110,7 @@ jobs:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     concurrency:
       group: deploy
       cancel-in-progress: false
@@ -155,7 +156,7 @@ jobs:
       - name: Wait for rollout
         run: |
           for _ in $(seq 60); do
-            if curl -sf --netrc "https://api.gigalixir.com/api/apps/$APP_NAME/status" |
+            if curl -sf --netrc --max-time 15 "https://api.gigalixir.com/api/apps/$APP_NAME/status" |
               jq -e --arg sha "$DEPLOY_SHA" \
                 '.data.pods | length > 0 and all(.sha == $sha and .status == "Healthy")' > /dev/null; then
               exit 0
@@ -167,12 +168,16 @@ jobs:
 
       - name: Smoke test
         run: |
-          curl -sf -o /dev/null "$APP_URL/"
-          # The upgraded socket stays open, so curl always ends on --max-time.
-          code=$(curl -s -o /dev/null --http1.1 --max-time 5 -w '%{http_code}' \
-            -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
-            -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-            -H "Origin: $APP_URL" "$APP_URL/live/websocket?vsn=2.0.0" || true)
+          curl -sf -o /dev/null --retry 5 --retry-delay 3 --retry-all-errors --max-time 10 "$APP_URL/"
+          for _ in $(seq 5); do
+            # The upgraded socket stays open, so curl always ends on --max-time.
+            code=$(curl -s -o /dev/null --http1.1 --max-time 5 -w '%{http_code}' \
+              -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+              -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+              -H "Origin: $APP_URL" "$APP_URL/live/websocket?vsn=2.0.0" || true)
+            [ "$code" = 101 ] && break
+            sleep 3
+          done
           if [ "$code" != 101 ]; then
             echo "::error::LiveView websocket upgrade returned HTTP $code (check PHX_HOST)"
             exit 1
@@ -183,7 +188,7 @@ jobs:
         run: rm -f ~/.netrc
 
       - name: Update deploy badge
-        if: always()
+        if: ${{ !cancelled() }}
         uses: schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
