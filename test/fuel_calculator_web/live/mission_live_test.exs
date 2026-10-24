@@ -831,10 +831,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, land: :earth))
 
+      # The labels follow the radios' :checked in CSS, so the radios carry the state
       assert has_element?(view, "#mission_steps_0_action_land[checked]")
       refute has_element?(view, "#mission_steps_0_action_launch[checked]")
-      assert has_element?(view, "label[for=mission_steps_0_action_land].btn-primary")
-      refute has_element?(view, "label[for=mission_steps_0_action_launch].btn-primary")
     end
 
     test "titles each step with its number, action and planet", %{conn: conn} do

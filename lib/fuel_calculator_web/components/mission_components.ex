@@ -172,11 +172,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
             {format_kg(@detail.fuel)}
           </span>
         </div>
-        <div class="mt-2 flex flex-wrap items-start gap-x-2">
+        <div class="mt-2 flex flex-wrap items-start gap-x-2 gap-y-2">
           <%!-- The wrapper keeps the move buttons in place: inputs_for keeps a step's input
                ids when it moves, so a patch moves the radios to another row, and without
-               it the buttons next to them would move too, dropping their focus --%>
-          <div class="flex-none">
+               it the buttons next to them would move too, dropping their focus.
+               With the 4px the select's fieldset adds above it, the paddings center the
+               36px action group, the select and the buttons on the same line. --%>
+          <div class="flex-none pt-0.5">
             <.action_toggle
               field={@step[:action]}
               label={"Step #{@step.index + 1} action"}
@@ -194,7 +196,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
               aria-describedby={@warning && "step-warning-#{@step.index}"}
             />
           </div>
-          <div class="flex items-center">
+          <div class="flex items-center pt-1">
             <.button
               id={"move-step-up-#{@step.index}"}
               type="button"
@@ -283,7 +285,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     <div
       id={"step-warning-#{@index}"}
       hidden={is_nil(@warning)}
-      class="flex items-start gap-2 rounded-box bg-warning/15 px-3 py-2 text-sm"
+      class="alert alert-warning alert-soft items-start gap-2 px-3 py-2 text-sm text-base-content"
     >
       <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
       <p>{@warning && warning_message(@warning, @index)} The fuel is still calculated.</p>
@@ -312,15 +314,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
     ~H"""
     <details
       id={"step-details-#{@index}"}
-      class="text-sm"
+      class="collapse collapse-arrow rounded-box bg-base-200 text-sm"
       phx-mounted={JS.ignore_attributes("open")}
     >
-      <summary class="w-fit cursor-pointer text-base-content/70 hover:text-base-content">
+      <summary class="collapse-title min-h-0 py-2 ps-3 pe-10 text-sm text-base-content/80">
         {if @detail,
           do: "How #{format_kg(@detail.fuel)} is calculated",
           else: "How the fuel is calculated"}<span class="sr-only"> in step {@index + 1}</span>
       </summary>
-      <div class="mt-2 space-y-1 rounded-box bg-base-200 p-3 tabular-nums wrap-anywhere">
+      <div class="collapse-content space-y-1 px-3 tabular-nums wrap-anywhere">
         <%= if @detail do %>
           <p data-role="mass">{carried_mass(@detail.mass, @mass)}</p>
           <p data-role="formula">{formula(@detail.action, @detail.planet)}</p>
@@ -391,23 +393,26 @@ defmodule FuelCalculatorWeb.MissionComponents do
     ~H"""
     <fieldset
       id={@field.id}
-      class="fieldset mb-2"
+      class="fieldset p-0"
       role="radiogroup"
       aria-invalid={@errors != [] && "true"}
       aria-describedby={@errors != [] && "#{@field.id}-error"}
     >
       <legend class="sr-only">{@label}</legend>
       <input type="hidden" name={@field.name} value="" />
-      <div class="join">
+      <%!-- The checked option follows the radio's :checked, so it changes on click --%>
+      <div class={[
+        "inline-flex gap-0.5 rounded-field bg-base-200 p-0.5",
+        @errors != [] && "ring-1 ring-error"
+      ]}>
         <label
           :for={{label, value} <- @options}
           for={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
           class={[
-            "btn join-item gap-1",
+            "btn btn-sm btn-ghost gap-1 border-0 text-base-content/80",
+            "has-checked:bg-base-100 has-checked:text-primary has-checked:shadow-sm",
             "has-focus-visible:outline-2 has-focus-visible:outline-offset-2",
-            "has-focus-visible:outline-primary",
-            to_string(value) == @checked && "btn-primary",
-            @errors != [] && "border-error"
+            "has-focus-visible:outline-primary"
           ]}
         >
           <%!-- An added step focuses this radio, near its top: below lg the margin keeps
