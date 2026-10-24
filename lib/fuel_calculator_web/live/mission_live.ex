@@ -108,7 +108,8 @@ defmodule FuelCalculatorWeb.MissionLive do
   # never takes the focus
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
-    steps = Ecto.Changeset.get_field(changeset, :steps)
+    mass = valid_mass(changeset)
+    path = changeset |> Ecto.Changeset.get_field(:steps) |> Enum.map(&{&1.action, &1.planet})
 
     fuel =
       case Mission.calculate(changeset) do
@@ -118,12 +119,22 @@ defmodule FuelCalculatorWeb.MissionLive do
 
     assign(socket,
       form: to_form(changeset, action: :validate),
-      mass: valid_mass(changeset),
+      mass: mass,
       focus_step: nil,
       fuel: fuel,
-      step_count: length(steps),
-      warnings: FlightPath.warnings(Enum.map(steps, &{&1.action, &1.planet}))
+      loaded_example: loaded_example(mass, path),
+      step_count: length(path),
+      warnings: FlightPath.warnings(path)
     )
+  end
+
+  # The example the mission matches, whether it was loaded or typed in, so editing
+  # any of its values unmarks it
+  defp loaded_example(mass, path) do
+    Enum.find_value(@examples, fn
+      {id, _label, ^mass, ^path} -> id
+      _example -> nil
+    end)
   end
 
   defp valid_mass(changeset) do
@@ -154,7 +165,7 @@ defmodule FuelCalculatorWeb.MissionLive do
             </p>
           </header>
 
-          <.example_buttons examples={@examples} />
+          <.example_buttons examples={@examples} loaded={@loaded_example} />
 
           <div class="card card-border bg-base-100 shadow-sm">
             <.form

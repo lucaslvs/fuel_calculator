@@ -13,29 +13,98 @@ defmodule FuelCalculatorWeb.MissionComponents do
   alias FuelCalculator.Planet
 
   @doc """
-  Renders a button per example mission, which sends `load_example` with its id.
+  Renders a card per example mission, which sends `load_example` with its id, and marks
+  the one the mission matches.
+
+  Below `sm` the cards only show the name and the number of steps, so the loaded one's
+  route and mass are shown below them. The check is hidden there too: next to the name
+  it wraps the longer names to a second line.
   """
   attr :examples, :list,
     required: true,
     doc: "the example missions, as `{id, label, mass, flight path}` tuples"
 
+  attr :loaded, :string, default: nil, doc: "the id of the example the mission matches"
+
   def example_buttons(assigns) do
+    assigns = assign(assigns, :loaded_example, List.keyfind(assigns.examples, assigns.loaded, 0))
+
     ~H"""
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="text-sm text-base-content/70">Try an example:</span>
-      <button
-        :for={{id, label, _mass, _path} <- @examples}
-        id={"example-#{id}"}
-        type="button"
-        phx-click="load_example"
-        phx-value-id={id}
-        class="btn btn-soft btn-sm"
+    <div class="space-y-2">
+      <div>
+        <h2 class="text-sm font-semibold">Example missions</h2>
+        <p class="text-xs text-base-content/80">Each one replaces the mass and the flight path.</p>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          :for={{id, label, mass, path} <- @examples}
+          id={"example-#{id}"}
+          type="button"
+          phx-click="load_example"
+          phx-value-id={id}
+          aria-pressed={to_string(id == @loaded)}
+          class={[
+            "card card-sm card-border bg-base-100 cursor-pointer text-start sm:transition-colors sm:hover:border-primary",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+            id == @loaded && "border-primary"
+          ]}
+        >
+          <span class="card-body gap-1 p-2 sm:p-3">
+            <span class="flex items-start justify-between gap-1">
+              <span class="font-semibold leading-tight">{label}</span>
+              <.icon
+                :if={id == @loaded}
+                name="hero-check-circle-mini"
+                class="size-4 shrink-0 text-primary max-sm:hidden"
+              />
+            </span>
+            <.example_route path={path} class="max-sm:hidden" />
+            <span data-role="size" class="text-xs tabular-nums text-base-content/80 max-sm:hidden">
+              {example_size(mass, path)}
+            </span>
+            <span class="text-xs tabular-nums text-base-content/80 sm:hidden">
+              {length(path)} steps
+            </span>
+          </span>
+        </button>
+      </div>
+      <p
+        :if={@loaded_example}
+        id="loaded-example"
+        class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/80 sm:hidden"
       >
-        {label}
-      </button>
+        <.example_route path={elem(@loaded_example, 3)} />
+        <span class="tabular-nums">
+          · {example_size(elem(@loaded_example, 2), elem(@loaded_example, 3))}
+        </span>
+      </p>
     </div>
     """
   end
+
+  # The planets the flight path visits, without repeating the one a step lands on
+  # when the next step launches from it
+  attr :path, :list, required: true
+  attr :class, :string, default: nil
+
+  defp example_route(assigns) do
+    assigns = assign(assigns, :planets, assigns.path |> Enum.map(&elem(&1, 1)) |> Enum.dedup())
+
+    ~H"""
+    <span class={["flex flex-wrap items-center gap-x-1 text-xs text-base-content/80", @class]}>
+      <%= for {planet, index} <- Enum.with_index(@planets) do %>
+        <.icon
+          :if={index > 0}
+          name="hero-arrow-long-right-micro"
+          class="size-3.5 opacity-70"
+        />
+        <span data-role="planet">{capitalize(planet)}</span>
+      <% end %>
+    </span>
+    """
+  end
+
+  defp example_size(mass, path), do: "#{format_kg(mass)} · #{length(path)} steps"
 
   @doc """
   Renders the flight path as a timeline: the spacecraft first, then a node per step, and
