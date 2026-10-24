@@ -695,10 +695,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
-  # The add, move and remove buttons trigger a form change through JS, which
-  # LiveViewTest does not run, so these tests send the steps_sort, steps_swap and
-  # steps_drop values the buttons add to the form. Moved steps are checked by row,
-  # since inputs_for keeps each step's input ids when it changes position.
   # The LiveViewTest doesn't run JS commands, so these check the commands each element
   # carries; the focus itself was checked in a browser
   describe "focus" do
@@ -756,6 +752,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
+  # The add, move and remove buttons trigger a form change through JS, which
+  # LiveViewTest does not run, so these tests send the steps_sort, steps_swap and
+  # steps_drop values the buttons add to the form. Moved steps are checked by row,
+  # since inputs_for keeps each step's input ids when it changes position.
   describe "flight path" do
     test "adds a blank step and keeps the entered values", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
@@ -798,6 +798,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#step-0")
       assert has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", exactly("0 kg"))
+      refute has_element?(view, "#fuel-by-step")
     end
 
     test "hides the empty path message once a step is added", %{conn: conn} do
@@ -940,6 +941,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#flight-path-steps > legend", "Steps")
       refute has_element?(view, "fieldset #mission_mass")
       # The timeline's lines are decoration, not separators
+      assert has_element?(view, "#steps hr[aria-hidden=true]")
       refute has_element?(view, "hr:not([aria-hidden=true])")
     end
 
