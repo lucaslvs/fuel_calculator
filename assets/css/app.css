@@ -19,40 +19,40 @@
 }
 
 /* daisyUI theme plugin.
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+  Two cool blue themes with an "electric" blue primary. Changing a color means measuring the
+  contrast again (WCAG AA). Build your own at: https://daisyui.com/theme-generator/ */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  /* Primary and error are light, with dark content, so text on either side meets WCAG AA */
-  --color-primary: oklch(72% 0.16 277.117);
-  --color-primary-content: oklch(25.26% 0.014 253.1);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(71% 0.194 13.428);
-  --color-error-content: oklch(25.26% 0.014 253.1);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
+  --color-base-100: oklch(19% 0.045 272);
+  --color-base-200: oklch(16% 0.043 272);
+  --color-base-300: oklch(13% 0.041 272);
+  --color-base-content: oklch(93% 0.012 272);
+  /* The accent colors are light, with dark content, so text on either side meets WCAG AA */
+  --color-primary: oklch(72% 0.17 258);
+  --color-primary-content: oklch(20% 0.045 272);
+  --color-secondary: oklch(72% 0.13 290);
+  --color-secondary-content: oklch(20% 0.045 272);
+  --color-accent: oklch(82% 0.12 210);
+  --color-accent-content: oklch(20% 0.045 272);
+  --color-neutral: oklch(30% 0.05 272);
+  --color-neutral-content: oklch(93% 0.012 272);
+  --color-info: oklch(72% 0.13 240);
+  --color-info-content: oklch(20% 0.045 272);
+  --color-success: oklch(74% 0.14 165);
+  --color-success-content: oklch(20% 0.045 272);
+  --color-warning: oklch(80% 0.15 85);
+  --color-warning-content: oklch(20% 0.045 272);
+  --color-error: oklch(70% 0.19 22);
+  --color-error-content: oklch(20% 0.045 272);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
   --depth: 1;
   --noise: 0;
 }
@@ -62,33 +62,34 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
+  --color-base-100: oklch(99% 0.004 262);
+  --color-base-200: oklch(96.5% 0.01 262);
+  --color-base-300: oklch(92% 0.018 262);
+  /* Dark enough for .label (60% opacity) on base-100 to meet WCAG AA: don't lighten it */
+  --color-base-content: oklch(20% 0.03 262);
   /* Primary and error are dark enough for text on and around them to meet WCAG AA */
-  --color-primary: oklch(54% 0.185 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(55% 0.245 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
+  --color-primary: oklch(50% 0.21 262);
+  --color-primary-content: oklch(98% 0.01 262);
+  --color-secondary: oklch(45% 0.12 280);
+  --color-secondary-content: oklch(98% 0.01 262);
+  --color-accent: oklch(55% 0.13 215);
+  --color-accent-content: oklch(98% 0.01 262);
+  --color-neutral: oklch(30% 0.035 262);
+  --color-neutral-content: oklch(97% 0.005 262);
+  --color-info: oklch(55% 0.15 245);
+  --color-info-content: oklch(98% 0.01 245);
+  --color-success: oklch(55% 0.13 165);
+  --color-success-content: oklch(98% 0.01 165);
+  --color-warning: oklch(72% 0.16 70);
+  --color-warning-content: oklch(25% 0.05 70);
+  --color-error: oklch(55% 0.22 25);
+  --color-error-content: oklch(98% 0.01 25);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
   --depth: 1;
   --noise: 0;
 }
@@ -116,3 +117,46 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* Star field. The theme script always resolves "system" to light or dark in data-theme.
+   daisyUI paints the background color on :root, so the body only adds images on top.
+   Stars are a 240px tile of dots; background-attachment: fixed may scroll on iOS. */
+body {
+  /* The background only paints the body box, which is shorter than the viewport on short pages */
+  min-height: 100dvh;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(60rem 30rem at 85% -10%, color-mix(in oklab, var(--color-primary) 14%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at 5% 110%, color-mix(in oklab, var(--color-secondary) 10%, transparent), transparent 70%),
+    radial-gradient(1.5px 1.5px at 82px 38px, color-mix(in oklab, var(--color-primary) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 18px 210px, color-mix(in oklab, var(--color-base-content) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 93px 149px, color-mix(in oklab, var(--color-base-content) 45%, transparent) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 9px 22px, color-mix(in oklab, var(--color-base-content) 70%, transparent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 17px 61px, color-mix(in oklab, var(--color-base-content) 70%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 15px 211px, color-mix(in oklab, var(--color-primary) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 57px 161px, color-mix(in oklab, var(--color-base-content) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 147px 149px, color-mix(in oklab, var(--color-base-content) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 56px 11px, color-mix(in oklab, var(--color-base-content) 45%, transparent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 74px 107px, color-mix(in oklab, var(--color-base-content) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 146px 78px, color-mix(in oklab, var(--color-primary) 45%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 26px 148px, color-mix(in oklab, var(--color-base-content) 45%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 95px 24px, color-mix(in oklab, var(--color-base-content) 35%, transparent) 50%, transparent 51%),
+    radial-gradient(2px 2px at 144px 15px, color-mix(in oklab, var(--color-base-content) 45%, transparent) 50%, transparent 51%);
+  background-size:
+    100% 100%, 100% 100%,
+    240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px,
+    240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px, 240px 240px;
+  background-repeat:
+    no-repeat, no-repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat;
+  background-attachment: fixed;
+}
+
+[data-theme="light"] body {
+  background-image: radial-gradient(60rem 30rem at 85% -10%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 70%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
