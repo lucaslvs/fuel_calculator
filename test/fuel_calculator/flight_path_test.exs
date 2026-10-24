@@ -1,7 +1,9 @@
 defmodule FuelCalculator.FlightPathTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   alias FuelCalculator.FlightPath
+  alias FuelCalculator.Planet
 
   doctest FlightPath
 
@@ -52,6 +54,38 @@ defmodule FuelCalculator.FlightPathTest do
                [nil, nil, nil]
 
       assert FlightPath.warnings([{:land, nil}, {:launch, :mars}]) == [nil, nil]
+    end
+  end
+
+  describe "warnings/1 properties" do
+    property "finds nothing wrong when every launch is from the planet of the last landing" do
+      check all path <- flyable_path() do
+        assert Enum.all?(FlightPath.warnings(path), &is_nil/1)
+      end
+    end
+
+    property "warns about the same action twice in a row" do
+      check all path <- flyable_path(2),
+                index <- integer(1..(length(path) - 1)) do
+        {action, _planet} = Enum.at(path, index - 1)
+        path = List.update_at(path, index, fn {_action, planet} -> {action, planet} end)
+
+        assert Enum.at(FlightPath.warnings(path), index) ==
+                 if(action == :land, do: :land_twice, else: :launch_twice)
+      end
+    end
+  end
+
+  # Launches from each planet and lands on the next one; may stop after a launch
+  defp flyable_path(min_planets \\ 1) do
+    gen all planets <- list_of(member_of(Planet.all()), min_length: min_planets, max_length: 8),
+            stop_after_launch? <- boolean() do
+      path =
+        planets
+        |> Enum.chunk_every(2, 1, :discard)
+        |> Enum.flat_map(fn [from, to] -> [launch: from, land: to] end)
+
+      if stop_after_launch?, do: path ++ [launch: List.last(planets)], else: path
     end
   end
 end
