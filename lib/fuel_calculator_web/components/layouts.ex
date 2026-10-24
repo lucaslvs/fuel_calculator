@@ -37,18 +37,20 @@ defmodule FuelCalculatorWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <.link navigate={~p"/"} class="btn btn-ghost text-lg">
-          <.icon name="hero-rocket-launch" class="size-6" /> FuelCalculator
-        </.link>
-      </div>
-      <div class="flex-none">
-        <.theme_toggle />
+    <header class="px-4 sm:px-6 lg:px-8">
+      <div class={["navbar mx-auto min-h-16 px-0", @class]}>
+        <div class="flex-1">
+          <.link navigate={~p"/"} class="btn btn-ghost -ms-3 px-3 text-lg">
+            <.icon name="hero-rocket-launch" class="size-6" /> FuelCalculator
+          </.link>
+        </div>
+        <div class="flex-none">
+          <.theme_toggle />
+        </div>
       </div>
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
+    <main class="px-4 pt-4 pb-20 sm:px-6 sm:pt-12 lg:px-8">
       <div class={["mx-auto space-y-4", @class]}>
         {render_slot(@inner_block)}
       </div>
@@ -118,7 +120,7 @@ defmodule FuelCalculatorWeb.Layouts do
       <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex w-1/3 cursor-pointer rounded-full p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
         aria-label="System theme"
@@ -127,7 +129,7 @@ defmodule FuelCalculatorWeb.Layouts do
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex w-1/3 cursor-pointer rounded-full p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
         aria-label="Light theme"
@@ -136,7 +138,7 @@ defmodule FuelCalculatorWeb.Layouts do
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex w-1/3 cursor-pointer rounded-full p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
         aria-label="Dark theme"

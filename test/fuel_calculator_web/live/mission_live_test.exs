@@ -34,6 +34,15 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
+    test "titles the page with a single heading", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      headings = view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query("h1")
+
+      assert has_element?(view, "h1", "Interplanetary fuel calculator")
+      assert Enum.count(headings) == 1
+    end
+
     test "names the theme buttons", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
