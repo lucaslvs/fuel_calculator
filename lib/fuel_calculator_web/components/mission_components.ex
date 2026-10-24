@@ -42,7 +42,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           type="button"
           phx-click="load_example"
           phx-value-id={id}
-          aria-pressed={to_string(id == @loaded)}
+          aria-current={id == @loaded && "true"}
           class={[
             "card card-sm card-border bg-base-100 cursor-pointer text-start sm:transition-colors sm:hover:border-primary",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",

@@ -298,10 +298,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "marks no example before one is loaded", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      for {id, _mass, _path, _total} <- @missions do
-        assert has_element?(view, "#example-#{id}[aria-pressed=false]")
-      end
-
+      # The cards don't toggle, so they have no pressed state
+      refute has_element?(view, "[id^=example-][aria-current], [id^=example-][aria-pressed]")
       refute has_element?(view, "#loaded-example")
     end
 
@@ -309,10 +307,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       view |> element("#example-passenger-ship") |> render_click()
-      assert pressed_examples(view) == ["example-passenger-ship"]
+      assert current_examples(view) == ["example-passenger-ship"]
+      refute has_element?(view, "[id^=example-][aria-current]:not([aria-current=true])")
 
       view |> element("#example-mars") |> render_click()
-      assert pressed_examples(view) == ["example-mars"]
+      assert current_examples(view) == ["example-mars"]
     end
 
     test "describes the loaded example below the cards", %{conn: conn} do
@@ -331,18 +330,18 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       view |> element("#example-apollo-11") |> render_click()
 
       change(view, mission(28_802, apollo))
-      assert pressed_examples(view) == []
+      assert current_examples(view) == []
       refute has_element?(view, "#loaded-example")
 
       change(view, mission(28_801, apollo))
-      assert pressed_examples(view) == ["example-apollo-11"]
+      assert current_examples(view) == ["example-apollo-11"]
 
       change(view, mission(28_801, List.replace_at(apollo, 1, {:land, :mars})))
-      assert pressed_examples(view) == []
+      assert current_examples(view) == []
 
       change(view, Map.put(mission(28_801, apollo), "steps_drop", ["3"]))
       refute has_element?(view, "#step-3")
-      assert pressed_examples(view) == []
+      assert current_examples(view) == []
     end
 
     test "marks an example typed in by hand", %{conn: conn} do
@@ -350,7 +349,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(14_606, launch: :earth, land: :mars, launch: :mars, land: :earth))
 
-      assert pressed_examples(view) == ["example-mars"]
+      assert current_examples(view) == ["example-mars"]
     end
 
     test "ignores an unknown example", %{conn: conn} do
@@ -1135,11 +1134,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     |> Enum.map(&(&1 |> LazyHTML.text() |> String.trim()))
   end
 
-  defp pressed_examples(view) do
+  defp current_examples(view) do
     view
     |> render()
     |> LazyHTML.from_fragment()
-    |> LazyHTML.query("[id^=example-][aria-pressed=true]")
+    |> LazyHTML.query("[id^=example-][aria-current=true]")
     |> LazyHTML.attribute("id")
   end
 
