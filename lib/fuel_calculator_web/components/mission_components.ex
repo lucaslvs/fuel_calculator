@@ -481,50 +481,88 @@ defmodule FuelCalculatorWeb.MissionComponents do
   Renders the mission's total fuel, or a dash while the mission is invalid. Screen
   readers announce the total whenever it changes.
 
-  On large screens it is a card that sticks to the top of its column; below that, the
-  same element is a compact bar fixed to the bottom of the screen, with the number of
-  steps in place of the icon and the description.
+  On large screens it is a card with an aura that sticks to the top of its column, and
+  breaks the total down by step; below that, the same element is a compact bar fixed to
+  the bottom of the screen, with the number of steps in place of the icon, the
+  description and the breakdown.
   """
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
   attr :step_count, :integer, required: true
 
   def fuel_summary(assigns) do
     ~H"""
-    <div
-      id="fuel-summary"
-      class={[
-        "stats w-full border border-base-300 bg-base-200",
-        "lg:sticky lg:top-6",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:rounded-none",
-        "max-lg:border-x-0 max-lg:border-b-0 max-lg:shadow-lg"
-      ]}
-    >
-      <div class="stat max-lg:px-4 max-lg:py-3">
-        <div class="stat-figure text-primary max-lg:hidden">
-          <.icon name="hero-fire" class="size-8" />
+    <%!-- The aura colors the text with its glow, so the card resets it --%>
+    <div class="block w-full text-primary motion-reduce:animate-none lg:aura lg:aura-sm lg:sticky lg:top-6">
+      <div
+        id="fuel-summary"
+        class={[
+          "card card-border w-full bg-base-100 text-base-content shadow-sm",
+          "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:rounded-none",
+          "max-lg:border-x-0 max-lg:border-b-0 max-lg:shadow-lg"
+        ]}
+      >
+        <div class="stat max-lg:px-4 max-lg:py-3">
+          <div class="stat-figure text-primary max-lg:hidden">
+            <.icon name="hero-fire" class="size-8" />
+          </div>
+          <div id="fuel-summary-steps" class="stat-figure text-sm text-base-content/70 lg:hidden">
+            {if @fuel, do: steps_label(@step_count), else: "Complete the mission"}
+          </div>
+          <div class="stat-title text-base-content/70">Total fuel required</div>
+          <div
+            id="total-fuel"
+            class="stat-value tabular-nums max-lg:text-2xl"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <%= if @fuel do %>
+              {format_kg(@fuel.total)}
+            <% else %>
+              <span aria-hidden="true">—</span><span class="sr-only">not available yet</span>
+            <% end %>
+          </div>
+          <div class="stat-desc text-base-content/70 max-lg:hidden">
+            {if @fuel,
+              do: "Includes the fuel to carry the fuel",
+              else: "Enter a mass and complete every step"}
+          </div>
         </div>
-        <div id="fuel-summary-steps" class="stat-figure text-sm text-base-content/70 lg:hidden">
-          {if @fuel, do: steps_label(@step_count), else: "Complete the mission"}
-        </div>
-        <div class="stat-title text-base-content/70">Total fuel required</div>
-        <div
-          id="total-fuel"
-          class="stat-value tabular-nums max-lg:text-2xl"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <%= if @fuel do %>
-            {format_kg(@fuel.total)}
-          <% else %>
-            <span aria-hidden="true">—</span><span class="sr-only">not available yet</span>
-          <% end %>
-        </div>
-        <div class="stat-desc text-base-content/70 max-lg:hidden">
-          {if @fuel,
-            do: "Includes the fuel to carry the fuel",
-            else: "Enter a mass and complete every step"}
-        </div>
+        <.fuel_by_step :if={@fuel && @fuel.details != []} details={@fuel.details} />
       </div>
+    </div>
+    """
+  end
+
+  attr :details, :list, required: true
+
+  # The bars only show each step's share; its fuel is in the text next to it
+  defp fuel_by_step(assigns) do
+    assigns =
+      assign(assigns, :max, assigns.details |> Enum.map(& &1.fuel) |> Enum.max() |> max(1))
+
+    ~H"""
+    <div class="border-t border-base-300 max-lg:hidden">
+      <p class="px-6 pt-4 text-xs font-semibold tracking-wide text-base-content/80 uppercase">
+        Fuel by step
+      </p>
+      <ul id="fuel-by-step" class="space-y-3 px-6 pt-3 pb-5">
+        <li :for={{detail, index} <- Enum.with_index(@details, 1)}>
+          <div class="flex items-baseline justify-between gap-3 text-sm">
+            <span data-role="label" class="truncate text-base-content/80">
+              {index} · {action_on(detail.action, detail.planet)}
+            </span>
+            <span data-role="fuel" class="font-semibold tabular-nums">
+              {format_kg(detail.fuel)}
+            </span>
+          </div>
+          <progress
+            class="progress progress-primary mt-1 h-1.5 w-full"
+            value={detail.fuel}
+            max={@max}
+            aria-hidden="true"
+          />
+        </li>
+      </ul>
     </div>
     """
   end

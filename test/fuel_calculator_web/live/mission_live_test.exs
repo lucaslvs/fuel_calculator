@@ -169,6 +169,42 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", "—")
     end
 
+    test "is broken down by step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view |> element("#example-apollo-11") |> render_click()
+
+      steps = [
+        {"1 · Launch from Earth", "32,988 kg", 32_988},
+        {"2 · Land on the Moon", "2,462 kg", 2_462},
+        {"3 · Launch from the Moon", "3,001 kg", 3_001},
+        {"4 · Land on Earth", "13,447 kg", 13_447}
+      ]
+
+      for {{label, fuel, value}, index} <- Enum.with_index(steps, 1) do
+        item = "#fuel-by-step li:nth-child(#{index})"
+
+        assert has_element?(view, "#{item} [data-role=label]", exactly(label))
+        assert has_element?(view, "#{item} [data-role=fuel]", exactly(fuel))
+        # Each bar is relative to the step that needs the most fuel
+        assert has_element?(view, "#{item} progress[value='#{value}'][max='32988']")
+      end
+
+      refute has_element?(view, "#fuel-by-step li:nth-child(5)")
+    end
+
+    test "is not broken down while the mission is invalid", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "#fuel-by-step")
+
+      view |> element("#example-apollo-11") |> render_click()
+      assert has_element?(view, "#fuel-by-step")
+
+      change(view, mission("", launch: :earth, land: :moon))
+      refute has_element?(view, "#fuel-by-step")
+    end
+
     test "is shown once, with the number of steps", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
