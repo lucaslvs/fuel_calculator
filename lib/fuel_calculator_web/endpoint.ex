@@ -12,10 +12,15 @@ defmodule FuelCalculatorWeb.Endpoint do
   ]
 
   # Websocket frames have no size limit by default; the largest mission event
-  # (15 steps) is about 4 KB. Longpoll has no such option, so Mission rejects
+  # (15 steps) is about 4 KB. The limit applies to compressed frames, which Bandit
+  # inflates up to 25 times. Longpoll has no such option, so Mission rejects
   # oversized flight paths before casting them.
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options], max_frame_size: 65_536],
+    websocket: [
+      connect_info: [session: @session_options],
+      max_frame_size: 65_536,
+      compress: true
+    ],
     longpoll: [connect_info: [session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
