@@ -293,12 +293,16 @@ defmodule FuelCalculatorWeb.CoreComponents do
     """
   end
 
-  # The input box is a span because the whole field is already inside a label
+  # The input box is a span because the whole field is already inside a label. The
+  # label would also name the input after the suffix ("Mass kg"), so screen readers get
+  # it in parentheses after the label text instead.
   def input(%{suffix: [_ | _]} = assigns) do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class={@label_class || "label mb-1"}>{@label}</span>
+        <span :if={@label} class={@label_class || "label mb-1"}>
+          {@label}<span class="sr-only"> ({render_slot(@suffix)})</span>
+        </span>
         <span class={[
           @class || "w-full input",
           @errors != [] && (@error_class || "input-error")
@@ -311,7 +315,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
             class="grow"
             {error_attrs(@rest, @errors, @id)}
           />
-          <span class="label">{render_slot(@suffix)}</span>
+          <span class="label" aria-hidden={@label && "true"}>{render_slot(@suffix)}</span>
         </span>
       </label>
       <.field_errors id={@id} errors={@errors} />

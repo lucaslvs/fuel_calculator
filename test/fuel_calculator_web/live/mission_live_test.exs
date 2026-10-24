@@ -64,6 +64,13 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_mass[placeholder='e.g. 28801'][inputmode=numeric]")
     end
 
+    test "puts the mass unit in the input's name in parentheses", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "label[for=mission_mass] .sr-only", exactly("(kg)"))
+      assert has_element?(view, "#mission_mass ~ .label[aria-hidden=true]", "kg")
+    end
+
     test "waits for a pause in typing before recalculating", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
