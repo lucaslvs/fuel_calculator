@@ -194,6 +194,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
   attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
   attr :class, :any, default: nil, doc: "the input class to use over defaults"
   attr :error_class, :any, default: nil, doc: "the input error class to use over defaults"
+  attr :label_class, :any, default: nil, doc: "the label class to use over defaults"
 
   attr :rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
@@ -255,7 +256,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class || "label mb-1"}>{@label}</span>
         <select
           id={@id}
           name={@name}
@@ -276,7 +277,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class || "label mb-1"}>{@label}</span>
         <textarea
           id={@id}
           name={@name}
@@ -297,7 +298,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class || "label mb-1"}>{@label}</span>
         <span class={[
           @class || "w-full input",
           @errors != [] && (@error_class || "input-error")
@@ -323,7 +324,7 @@ defmodule FuelCalculatorWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class={@label_class || "label mb-1"}>{@label}</span>
         <input
           type={@type}
           name={@name}

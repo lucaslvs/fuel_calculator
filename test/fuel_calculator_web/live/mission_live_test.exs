@@ -29,7 +29,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0")
       refute has_element?(view, "#step-1")
       refute has_element?(view, "#step-0 option[selected], #step-0 input[checked]")
-      refute has_element?(view, "#empty-path:not([hidden])")
+      refute has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", "—")
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
@@ -607,13 +607,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert focus_target(view, "#remove-step-0") == "#add-step"
     end
 
-    test "keeps the empty state in the page while there are steps", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      # Inserting it when the last step is removed would move "Add step" and drop its focus
-      assert has_element?(view, "#empty-path[hidden]")
-    end
-
     test "moves to the previous step's remove button on removal", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -678,7 +671,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
 
       refute has_element?(view, "#step-0")
-      assert has_element?(view, "#empty-path:not([hidden])")
+      assert has_element?(view, "#empty-path")
       assert has_element?(view, "#total-fuel", exactly("0 kg"))
     end
 
@@ -689,7 +682,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["new"]})
 
       assert has_element?(view, "#step-0")
-      refute has_element?(view, "#empty-path:not([hidden])")
+      refute has_element?(view, "#empty-path")
     end
 
     test "moves a step down", %{conn: conn} do
@@ -797,6 +790,34 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#move-step-down-1[disabled]")
     end
 
+    test "counts the steps against the limit", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#step-count", exactly("1 / 15 steps"))
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
+      assert has_element?(view, "#step-count", exactly("0 / 15 steps"))
+
+      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+      assert has_element?(view, "#step-count", exactly("4 / 15 steps"))
+
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 15)))
+      assert has_element?(view, "#step-count", exactly("15 / 15 steps"))
+    end
+
+    test "starts with the spacecraft and ends with Add step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "h2", "Flight path")
+      assert has_element?(view, "[data-role=spacecraft] #mission_mass")
+      assert has_element?(view, "#steps > li:last-child #add-step")
+      # The mass is not one of the steps, so screen readers don't announce it in their group
+      assert has_element?(view, "#flight-path-steps > legend", "Steps")
+      refute has_element?(view, "fieldset #mission_mass")
+      # The timeline's lines are decoration, not separators
+      refute has_element?(view, "hr:not([aria-hidden=true])")
+    end
+
     test "disables adding a step at 15 steps", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -841,7 +862,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, launch: :earth, land: :moon))
 
-      refute has_element?(view, "#empty-path:not([hidden])")
+      refute has_element?(view, "#empty-path")
 
       assert has_element?(
                view,

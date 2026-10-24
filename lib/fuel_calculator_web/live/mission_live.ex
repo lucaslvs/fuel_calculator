@@ -154,24 +154,6 @@ defmodule FuelCalculatorWeb.MissionLive do
               phx-change="validate"
               phx-submit="validate"
             >
-              <div>
-                <.input
-                  field={@form[:mass]}
-                  type="number"
-                  label="Spacecraft mass"
-                  min="1"
-                  max={@max_mass}
-                  step="1"
-                  inputmode="numeric"
-                  placeholder="e.g. 28801"
-                  phx-debounce="300"
-                  aria-describedby={@mass && "mass-hint"}
-                >
-                  <:suffix>kg</:suffix>
-                </.input>
-                <p :if={@mass} id="mass-hint" class="label tabular-nums">{format_kg(@mass)}</p>
-              </div>
-
               <.flight_path
                 field={@form[:steps]}
                 step_count={@step_count}
@@ -180,7 +162,33 @@ defmodule FuelCalculatorWeb.MissionLive do
                 mass={@mass}
                 warnings={@warnings}
                 focus_step={@focus_step}
-              />
+              >
+                <:spacecraft>
+                  <.input
+                    field={@form[:mass]}
+                    type="number"
+                    label="Spacecraft mass"
+                    label_class="mb-1 block text-sm font-semibold"
+                    class="input w-full tabular-nums"
+                    min="1"
+                    max={@max_mass}
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="e.g. 28801"
+                    phx-debounce="300"
+                    aria-describedby={@mass && "mass-hint"}
+                  >
+                    <:suffix>kg</:suffix>
+                  </.input>
+                  <p
+                    :if={@mass}
+                    id="mass-hint"
+                    class="mt-1 text-sm text-base-content/80 tabular-nums"
+                  >
+                    {format_kg(@mass)}
+                  </p>
+                </:spacecraft>
+              </.flight_path>
             </.form>
           </div>
         </div>
