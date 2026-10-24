@@ -397,6 +397,21 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   describe "fuel explanation" do
+    test "says there are no later steps only on the last step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      # So light that no step needs fuel, so every step carries just the spacecraft
+      change(view, mission(1, launch: :earth, land: :moon))
+
+      assert has_element?(
+               view,
+               "#step-details-0 [data-role=mass]",
+               "1 kg spacecraft + 0 kg of fuel for the later steps = 1 kg"
+             )
+
+      assert has_element?(view, "#step-details-1 [data-role=mass]", "1 kg (no later steps)")
+    end
+
     test "shows the mass, the formula and the iterations of each step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 

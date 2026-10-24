@@ -341,7 +341,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
         </div>
         <div class="space-y-2">
           <.step_warning index={@step.index} warning={@warning} />
-          <.step_details index={@step.index} detail={@detail} mass={@mass} />
+          <.step_details
+            index={@step.index}
+            last={@step.index == @step_count - 1}
+            detail={@detail}
+            mass={@mass}
+          />
         </div>
         <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
         <input
@@ -416,6 +421,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     do: "Launches again without landing after step #{index}."
 
   attr :index, :integer, required: true
+  attr :last, :boolean, default: false
   attr :detail, :map, default: nil
   attr :mass, :integer, default: nil
 
@@ -435,7 +441,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
       </summary>
       <div class="collapse-content space-y-1 px-3 tabular-nums wrap-anywhere">
         <%= if @detail do %>
-          <p data-role="mass">{carried_mass(@detail.mass, @mass)}</p>
+          <p data-role="mass">{carried_mass(@detail.mass, @mass, @last)}</p>
           <p data-role="formula">{formula(@detail.action, @detail.planet)}</p>
           <p data-role="iterations">
             <%= case @detail.iterations do %>
@@ -456,9 +462,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
     """
   end
 
-  defp carried_mass(mass, mass), do: "Mass: #{format_kg(mass)} (no later steps)"
+  # Earlier steps can carry just the spacecraft too, when the later steps need no fuel
+  defp carried_mass(mass, _spacecraft, true), do: "Mass: #{format_kg(mass)} (no later steps)"
 
-  defp carried_mass(mass, spacecraft) do
+  defp carried_mass(mass, spacecraft, false) do
     "Mass: #{format_kg(spacecraft)} spacecraft + #{format_kg(mass - spacecraft)} " <>
       "of fuel for the later steps = #{format_kg(mass)}"
   end
