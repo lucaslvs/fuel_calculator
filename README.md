@@ -38,7 +38,9 @@ mix dialyzer      # static type analysis
 
 The same checks run on every push via GitHub Actions, and the build fails below
 90% coverage. The workflow also publishes a per-module coverage summary, updates
-the coverage badge and lints itself with [actionlint](https://github.com/rhysd/actionlint).
+the coverage badge, lints itself with [actionlint](https://github.com/rhysd/actionlint)
+and fails when a Hex dependency is retired or has a security advisory
+(`mix hex.audit`).
 
 ## Design decisions
 
@@ -91,8 +93,8 @@ the coverage badge and lints itself with [actionlint](https://github.com/rhysd/a
 
 - The three scenarios from the challenge are tested in the domain, the
   validation and the LiveView.
-- CI compiles with warnings as errors and runs Credo in strict mode, Dialyzer and
-  the tests, and fails below 90% coverage.
+- CI compiles with warnings as errors, runs Credo in strict mode, Dialyzer, the
+  tests and `mix hex.audit`, and fails below 90% coverage.
 
 ### Hosting
 
