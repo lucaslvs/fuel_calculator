@@ -26,22 +26,6 @@ defmodule FuelCalculatorWeb.Router do
   #   pipe_through :api
   # end
 
-  # Enable LiveDashboard in development
-  if Application.compile_env(:fuel_calculator, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
-    scope "/dev" do
-      pipe_through :browser
-
-      live_dashboard "/dashboard", metrics: FuelCalculatorWeb.Telemetry
-    end
-  end
-
   # The theme script in the root layout is inline, so it runs with the nonce
   defp put_content_security_policy(conn, _opts) do
     nonce = 18 |> :crypto.strong_rand_bytes() |> Base.encode64()
