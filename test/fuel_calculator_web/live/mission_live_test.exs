@@ -958,13 +958,24 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "h2", "Flight path")
       assert has_element?(view, "[data-role=spacecraft] #mission_mass")
-      assert has_element?(view, "#steps > li:last-child #add-step")
+      assert has_element?(view, "#steps + ul #add-step")
       # The mass is not one of the steps, so screen readers don't announce it in their group
       assert has_element?(view, "#flight-path-steps > legend", "Steps")
       refute has_element?(view, "fieldset #mission_mass")
       # The timeline's lines are decoration, not separators
       assert has_element?(view, "#steps hr[aria-hidden=true]")
       refute has_element?(view, "hr:not([aria-hidden=true])")
+    end
+
+    test "lists only the steps for screen readers", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :moon, launch: :moon))
+
+      assert has_element?(view, "ul[role=none] > li[role=none][data-role=spacecraft]")
+      assert has_element?(view, "#steps + ul[role=none] > li[role=none] #add-step")
+      assert has_element?(view, "#steps > li#step-1")
+      refute has_element?(view, "#steps > li:not([id^=step-]), #steps > li[role]")
     end
 
     test "keeps only list items in the steps list", %{conn: conn} do

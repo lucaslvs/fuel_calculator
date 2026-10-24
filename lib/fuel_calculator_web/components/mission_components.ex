@@ -137,8 +137,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
         </span>
       </div>
 
-      <ul class="timeline timeline-vertical timeline-compact mt-3 w-full">
-        <li data-role="spacecraft" class="w-full [--timeline-row-start:0]">
+      <%!-- Only the steps are a list for screen readers: the spacecraft and the "Add step"
+      node are timelines of their own, joined to the steps', with list markup for the
+      timeline's layout only --%>
+      <ul class="timeline timeline-vertical timeline-compact mt-3 w-full" role="none">
+        <li data-role="spacecraft" class="w-full [--timeline-row-start:0]" role="none">
           <div class="timeline-middle">
             <span class="grid size-8 place-items-center rounded-full bg-base-200 text-base-content">
               <.icon name="hero-rocket-launch" class="size-4" />
@@ -153,63 +156,68 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
       <fieldset id="flight-path-steps" class="fieldset p-0">
         <legend class="sr-only">Steps</legend>
-        <ul id="steps" class="timeline timeline-vertical timeline-compact w-full">
-          <%!-- A ul only holds li, so each step renders its own hidden fields --%>
-          <.inputs_for :let={step} field={@field} skip_hidden>
-            <.step_row
-              step={step}
-              step_count={@step_count}
-              detail={@fuel && Enum.at(@fuel.details, step.index)}
-              mass={@mass}
-              warning={Enum.at(@warnings, step.index)}
-              focus={step.index == @focus_step}
-            />
-          </.inputs_for>
-          <li class="w-full [--timeline-row-start:0]">
-            <hr class="bg-base-300" aria-hidden="true" />
-            <div class="timeline-middle">
-              <span class="grid size-8 place-items-center rounded-full border border-dashed border-base-content/40 text-base-content/80">
-                <.icon name="hero-plus" class="size-4" />
-              </span>
-            </div>
-            <div class="timeline-end ms-3 w-[calc(100%-0.75rem)] min-w-0">
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <%!-- enabled: because text-primary would also color the disabled button --%>
-                <.button
-                  id="add-step"
-                  type="button"
-                  name="mission[steps_sort][]"
-                  value="new"
-                  phx-click={JS.dispatch("change")}
-                  disabled={@step_count >= @max_steps}
-                  class="btn btn-ghost btn-sm -ms-3 enabled:text-primary"
-                >
-                  <.icon name="hero-plus" class="size-4" /> Add step
-                </.button>
-                <p
-                  :if={@step_count >= @max_steps}
-                  id="step-limit"
-                  class="flex items-center gap-1 text-xs text-base-content/80"
-                >
-                  <.icon name="hero-information-circle-micro" class="size-4" />
-                  A flight path has at most {@max_steps} steps.
-                </p>
+        <%!-- One child of the fieldset, so its gap doesn't split the two timelines --%>
+        <div>
+          <ul id="steps" class="timeline timeline-vertical timeline-compact w-full">
+            <%!-- A ul only holds li, so each step renders its own hidden fields --%>
+            <.inputs_for :let={step} field={@field} skip_hidden>
+              <.step_row
+                step={step}
+                step_count={@step_count}
+                detail={@fuel && Enum.at(@fuel.details, step.index)}
+                mass={@mass}
+                warning={Enum.at(@warnings, step.index)}
+                focus={step.index == @focus_step}
+              />
+            </.inputs_for>
+          </ul>
+          <ul class="timeline timeline-vertical timeline-compact w-full" role="none">
+            <li class="w-full [--timeline-row-start:0]" role="none">
+              <hr class="bg-base-300" aria-hidden="true" />
+              <div class="timeline-middle">
+                <span class="grid size-8 place-items-center rounded-full border border-dashed border-base-content/40 text-base-content/80">
+                  <.icon name="hero-plus" class="size-4" />
+                </span>
               </div>
-              <p :if={@step_count == 0} id="empty-path" class="pt-1.5 text-sm text-base-content/80">
-                No steps yet. Add a launch or a landing to plan the flight.
-              </p>
-              <div :if={@field.errors != []} id="steps-errors" class="pt-1.5">
-                <p
-                  :for={msg <- Enum.map(@field.errors, &translate_error/1)}
-                  class="flex items-center gap-2 text-sm text-error"
-                >
-                  <.icon name="hero-exclamation-circle" class="size-5" />
-                  {msg}
+              <div class="timeline-end ms-3 w-[calc(100%-0.75rem)] min-w-0">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <%!-- enabled: because text-primary would also color the disabled button --%>
+                  <.button
+                    id="add-step"
+                    type="button"
+                    name="mission[steps_sort][]"
+                    value="new"
+                    phx-click={JS.dispatch("change")}
+                    disabled={@step_count >= @max_steps}
+                    class="btn btn-ghost btn-sm -ms-3 enabled:text-primary"
+                  >
+                    <.icon name="hero-plus" class="size-4" /> Add step
+                  </.button>
+                  <p
+                    :if={@step_count >= @max_steps}
+                    id="step-limit"
+                    class="flex items-center gap-1 text-xs text-base-content/80"
+                  >
+                    <.icon name="hero-information-circle-micro" class="size-4" />
+                    A flight path has at most {@max_steps} steps.
+                  </p>
+                </div>
+                <p :if={@step_count == 0} id="empty-path" class="pt-1.5 text-sm text-base-content/80">
+                  No steps yet. Add a launch or a landing to plan the flight.
                 </p>
+                <div :if={@field.errors != []} id="steps-errors" class="pt-1.5">
+                  <p
+                    :for={msg <- Enum.map(@field.errors, &translate_error/1)}
+                    class="flex items-center gap-2 text-sm text-error"
+                  >
+                    <.icon name="hero-exclamation-circle" class="size-5" />
+                    {msg}
+                  </p>
+                </div>
               </div>
-            </div>
-          </li>
-        </ul>
+            </li>
+          </ul>
+        </div>
         <input type="hidden" name="mission[steps_drop][]" />
       </fieldset>
     </div>
