@@ -725,6 +725,17 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       end
     end
 
+    # Parsing an integer this long raises a system limit error
+    test "ignores a move position too long to be a step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      swap = String.duplicate("1", 1_300_000)
+      change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", swap))
+
+      assert has_element?(view, "#step-0 input[value='land'][checked]")
+      assert has_element?(view, "#step-1 input[value='launch'][checked]")
+    end
+
     # render_hook sends the params as they are, without the form's inputs
     test "ignores a move that is not a single position or has no order", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")

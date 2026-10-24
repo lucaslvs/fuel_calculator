@@ -88,9 +88,11 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   # The move buttons send steps_swap with the position of the step to swap with
-  # the next one, in the same change event as the steps_sort they reorder.
+  # the next one, in the same change event as the steps_sort they reorder. Longpoll
+  # accepts much larger events than the websocket, and parsing a long enough
+  # number raises, so the position is checked to have at most two digits first.
   defp swap_steps(%{"steps_swap" => swap, "steps_sort" => sort} = params)
-       when is_binary(swap) and is_list(sort) do
+       when is_binary(swap) and byte_size(swap) <= 2 and is_list(sort) do
     case Integer.parse(swap) do
       {position, ""} when position >= 0 and position < length(sort) - 1 ->
         {before, [step, next | rest]} = Enum.split(sort, position)
