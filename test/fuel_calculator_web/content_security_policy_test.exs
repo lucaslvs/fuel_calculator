@@ -5,13 +5,15 @@ defmodule FuelCalculatorWeb.ContentSecurityPolicyTest do
     conn = get(conn, ~p"/")
     policy = policy(conn)
     nonce = nonce(policy)
+    # The port comes from the PORT environment variable when it is set
+    %URI{host: host, port: port} = FuelCalculatorWeb.Endpoint.struct_url()
 
     assert policy == %{
              "default-src" => ["'self'"],
              "script-src" => ["'self'", "'nonce-#{nonce}'"],
              "style-src" => ["'self'"],
              "img-src" => ["'self'", "data:"],
-             "connect-src" => ["'self'", "ws://localhost:4000"],
+             "connect-src" => ["'self'", "ws://#{host}:#{port}"],
              "object-src" => ["'none'"],
              "base-uri" => ["'self'"],
              "form-action" => ["'self'"],
