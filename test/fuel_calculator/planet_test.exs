@@ -24,4 +24,12 @@ defmodule FuelCalculator.PlanetTest do
       end
     end
   end
+
+  describe "gravity_thousandths/1" do
+    test "returns the surface gravity of each planet in thousandths" do
+      assert Planet.gravity_thousandths(:earth) == 9807
+      assert Planet.gravity_thousandths(:moon) == 1620
+      assert Planet.gravity_thousandths(:mars) == 3711
+    end
+  end
 end

@@ -48,10 +48,11 @@ the coverage badge and lints itself with [actionlint](https://github.com/rhysd/a
   no state, I/O or concurrency to manage.
 - A flight path is calculated from the last step to the first, because each step
   carries the fuel of every later step as extra weight.
-- The formulas use floats and `floor`, as in the challenge. Mass is capped at
-  10^12 kg and the flight path at 15 steps, the longest path whose float results
-  still match exact integer arithmetic at that mass (measured on the heaviest
-  path, Earth launches only; a 16th launch is off by 2 kg).
+- The fuel is calculated with integers: gravities and the formula's factors are
+  kept in thousandths, so rounding down is exact. With floats, as the challenge
+  writes the formulas, a result a hair below an integer can round up near
+  10^12 kg (601,183,387,170 kg launching from Earth needs 2 kg more than the
+  exact value). Mass is capped at 10^12 kg.
 
 ### Validation
 

@@ -27,7 +27,20 @@ defmodule FuelCalculator.Planet do
 
   """
   @spec gravity(t()) :: float()
-  def gravity(:earth), do: 9.807
-  def gravity(:moon), do: 1.62
-  def gravity(:mars), do: 3.711
+  def gravity(planet), do: gravity_thousandths(planet) / 1000
+
+  @doc """
+  Returns the surface gravity of `planet`, in thousandths of m/s², so the fuel
+  can be calculated with integers.
+
+  ## Examples
+
+      iex> FuelCalculator.Planet.gravity_thousandths(:moon)
+      1620
+
+  """
+  @spec gravity_thousandths(t()) :: pos_integer()
+  def gravity_thousandths(:earth), do: 9807
+  def gravity_thousandths(:moon), do: 1620
+  def gravity_thousandths(:mars), do: 3711
 end

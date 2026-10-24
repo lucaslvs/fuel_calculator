@@ -44,7 +44,7 @@ defmodule FuelCalculator.Fuel do
   @spec iterations(pos_integer(), action(), Planet.t()) :: [pos_integer()]
   def iterations(mass, action, planet)
       when is_integer(mass) and mass > 0 and action in [:launch, :land] do
-    case base_fuel(mass, action, Planet.gravity(planet)) do
+    case base_fuel(mass, action, planet) do
       fuel when fuel > 0 -> [fuel | iterations(fuel, action, planet)]
       _ -> []
     end
@@ -61,8 +61,10 @@ defmodule FuelCalculator.Fuel do
 
   """
   @spec formula(action()) :: {float(), pos_integer()}
-  def formula(:launch), do: {0.042, 33}
-  def formula(:land), do: {0.033, 42}
+  def formula(action) do
+    {factor, offset} = formula_thousandths(action)
+    {factor / 1000, offset}
+  end
 
   @doc """
   Returns how the fuel of each step is calculated when flying `mass` along
@@ -133,8 +135,13 @@ defmodule FuelCalculator.Fuel do
     mass |> breakdown(path) |> Enum.sum()
   end
 
-  defp base_fuel(mass, action, gravity) do
-    {factor, offset} = formula(action)
-    floor(mass * gravity * factor - offset)
+  # Gravity and factor are both in thousandths, so the product is in millionths
+  defp base_fuel(mass, action, planet) do
+    {factor, offset} = formula_thousandths(action)
+    gravity = Planet.gravity_thousandths(planet)
+    Integer.floor_div(mass * gravity * factor - offset * 1_000_000, 1_000_000)
   end
+
+  defp formula_thousandths(:launch), do: {42, 33}
+  defp formula_thousandths(:land), do: {33, 42}
 end

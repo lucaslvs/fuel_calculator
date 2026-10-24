@@ -45,6 +45,13 @@ defmodule FuelCalculator.FuelTest do
       assert Fuel.iterations(83, :launch, :earth) == [1]
     end
 
+    # In floats, 601_183_387_170 * 9.807 * 0.042 - 33 rounds up to an integer,
+    # one hair above the exact 247_623_830_041.99998
+    test "rounds down the exact fuel near the largest mass" do
+      assert [247_623_830_041, 101_994_769_817 | _] =
+               Fuel.iterations(601_183_387_170, :launch, :earth)
+    end
+
     test "rejects a mass that is not positive" do
       assert_raise FunctionClauseError, fn -> Fuel.iterations(0, :land, :earth) end
       assert_raise FunctionClauseError, fn -> Fuel.iterations(-1, :land, :earth) end

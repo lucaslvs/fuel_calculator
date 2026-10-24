@@ -13,9 +13,8 @@ defmodule FuelCalculator.Mission do
   alias FuelCalculator.Fuel
   alias FuelCalculator.Mission.Step
 
-  # Fuel is calculated in floats. Up to this mass and number of steps, the results
-  # match exact integer arithmetic even on the heaviest path (Earth launches only),
-  # where a 16th step is already off by 2 kg.
+  # Bounds for user input. The fuel is calculated with integers, so it is exact
+  # for any mass and path.
   @max_mass 1_000_000_000_000
   @max_steps 15
 
