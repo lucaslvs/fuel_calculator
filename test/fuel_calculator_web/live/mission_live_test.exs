@@ -580,7 +580,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "moves to the step added with Add step, once", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      refute has_element?(view, "#steps .list-row[phx-mounted]")
+      refute has_element?(view, "#steps > li[phx-mounted]")
 
       change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
 
@@ -589,7 +589,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, %{"mass" => "28802", "steps_sort" => ["0", "1"]})
 
-      refute has_element?(view, "#steps .list-row[phx-mounted]")
+      refute has_element?(view, "#steps > li[phx-mounted]")
     end
 
     test "stays put when an example is loaded", %{conn: conn} do
@@ -598,7 +598,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
       view |> element("#example-apollo-11") |> render_click()
 
-      refute has_element?(view, "#steps .list-row[phx-mounted]")
+      refute has_element?(view, "#steps > li[phx-mounted]")
     end
 
     test "moves to Add step when the only step is removed", %{conn: conn} do
@@ -837,14 +837,56 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "label[for=mission_steps_0_action_launch].btn-primary")
     end
 
-    test "numbers the steps", %{conn: conn} do
+    test "titles each step with its number, action and planet", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, launch: :earth, land: :moon))
 
       refute has_element?(view, "#empty-path:not([hidden])")
-      assert has_element?(view, "#step-0 [data-role=step-number]", "1")
-      assert has_element?(view, "#step-1 [data-role=step-number]", "2")
+
+      assert has_element?(
+               view,
+               "#step-0 [data-role=step-title]",
+               exactly("1 · Launch from Earth")
+             )
+
+      assert has_element?(view, "#step-1 [data-role=step-title]", exactly("2 · Land on the Moon"))
+    end
+
+    test "asks for the action and the planet of an incomplete step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(
+               view,
+               "#step-0 [data-role=step-title]",
+               exactly("1 · Choose an action and a planet")
+             )
+
+      change(view, %{
+        "mass" => "28801",
+        "steps_sort" => ["0", "1"],
+        "steps" => %{
+          "0" => %{"action" => "land", "planet" => "moon"},
+          "1" => %{"action" => "land", "planet" => ""}
+        }
+      })
+
+      assert has_element?(
+               view,
+               "#step-1 [data-role=step-title]",
+               exactly("2 · Choose an action and a planet")
+             )
+    end
+
+    test "marks each step with the icon of its action", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#step-0 [data-role=step-icon] .hero-ellipsis-horizontal")
+
+      change(view, mission(28_801, launch: :earth, land: :moon))
+
+      assert has_element?(view, "#step-0 [data-role=step-icon] .hero-arrow-up-right")
+      assert has_element?(view, "#step-1 [data-role=step-icon] .hero-arrow-down-right")
     end
   end
 

@@ -69,7 +69,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <p>No steps yet. Add a launch or a landing to plan the flight.</p>
       </div>
 
-      <div id="steps" class="list">
+      <ul id="steps" class="timeline timeline-vertical timeline-compact w-full">
         <.inputs_for :let={step} field={@field}>
           <.step_row
             step={step}
@@ -80,7 +80,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             focus={step.index == @focus_step}
           />
         </.inputs_for>
-      </div>
+      </ul>
 
       <input type="hidden" name="mission[steps_drop][]" />
 
@@ -113,9 +113,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
   end
 
   @doc """
-  Renders a step of the flight path: its number, action, planet and fuel, the
-  buttons that move and remove it, a warning when it can't follow the previous
-  step, and how its fuel is calculated.
+  Renders a step of the flight path as a timeline item: an icon of its action, a title
+  with its number, action and planet, its fuel, its action and planet, the buttons that
+  move and remove it, a warning when it can't follow the previous step, and how its fuel
+  is calculated.
 
   Moving or removing a step re-renders the rows by position, so the buttons also move
   the focus to the one that keeps the user's place, which exists before and after the
@@ -135,94 +136,128 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
 
   def step_row(assigns) do
+    assigns = assign(assigns, :chosen, chosen(assigns.step.source))
+
     ~H"""
-    <div
+    <li
       id={"step-#{@step.index}"}
-      class="list-row items-start gap-2 px-0 py-2 motion-safe:animate-fade-in sm:gap-3"
+      class="w-full [--timeline-row-start:0] motion-safe:animate-fade-in"
       phx-mounted={@focus && JS.focus_first()}
     >
-      <span
-        data-role="step-number"
-        class="w-8 pt-1 text-center text-2xl font-thin tabular-nums opacity-40"
-      >
-        {@step.index + 1}
-      </span>
-      <div class="list-col-grow flex flex-wrap gap-x-2">
-        <div class="flex-none">
-          <.action_toggle
-            field={@step[:action]}
-            label={"Step #{@step.index + 1} action"}
-            options={action_options()}
-          />
-        </div>
-        <div class="min-w-28 flex-1">
-          <.input
-            field={@step[:planet]}
-            type="select"
-            prompt="Planet"
-            options={planet_options()}
-            aria-label={"Step #{@step.index + 1} planet"}
-            aria-describedby={@warning && "step-warning-#{@step.index}"}
-          />
-        </div>
-        <%!-- Keeps its width while the mission is invalid, so the selects don't jump --%>
-        <div class="flex w-full items-center sm:mb-2 sm:w-auto sm:min-w-28 sm:justify-end sm:py-1">
+      <hr :if={@step.index > 0} class="bg-base-300" />
+      <div class="timeline-middle">
+        <span
+          data-role="step-icon"
+          class={[
+            "grid size-8 place-items-center rounded-full",
+            if(@chosen,
+              do: "bg-primary text-primary-content",
+              else: "bg-base-200 text-base-content/70"
+            )
+          ]}
+        >
+          <.icon name={step_icon(@chosen)} class="size-4" />
+        </span>
+      </div>
+      <div class="timeline-end ms-3 mb-5 w-[calc(100%-0.75rem)] min-w-0">
+        <div class="flex items-baseline justify-between gap-2 pt-1">
+          <p data-role="step-title" class="text-sm font-semibold">
+            {@step.index + 1} · {step_title(@chosen)}
+          </p>
           <span
             :if={@detail}
             id={"step-fuel-#{@step.index}"}
-            class="badge badge-soft badge-primary mb-2 tabular-nums sm:mb-0"
+            class="font-semibold whitespace-nowrap tabular-nums"
           >
             {format_kg(@detail.fuel)}
           </span>
         </div>
+        <div class="mt-2 flex flex-wrap items-start gap-x-2">
+          <%!-- The wrapper keeps the move buttons in place: inputs_for keeps a step's input
+               ids when it moves, so a patch moves the radios to another row, and without
+               it the buttons next to them would move too, dropping their focus --%>
+          <div class="flex-none">
+            <.action_toggle
+              field={@step[:action]}
+              label={"Step #{@step.index + 1} action"}
+              options={action_options()}
+            />
+          </div>
+          <div class="min-w-28 flex-1">
+            <.input
+              field={@step[:planet]}
+              type="select"
+              prompt="Planet"
+              options={planet_options()}
+              class="select select-sm w-full"
+              aria-label={"Step #{@step.index + 1} planet"}
+              aria-describedby={@warning && "step-warning-#{@step.index}"}
+            />
+          </div>
+          <div class="flex items-center">
+            <.button
+              id={"move-step-up-#{@step.index}"}
+              type="button"
+              name="mission[steps_swap]"
+              value={@step.index - 1}
+              phx-click={change_and_focus(move_up_focus(@step.index))}
+              disabled={@step.index == 0}
+              class="btn btn-ghost btn-sm btn-square text-base-content/70"
+              aria-label={"Move step #{@step.index + 1} up"}
+            >
+              <.icon name="hero-chevron-up" class="size-4" />
+            </.button>
+            <.button
+              id={"move-step-down-#{@step.index}"}
+              type="button"
+              name="mission[steps_swap]"
+              value={@step.index}
+              phx-click={change_and_focus(move_down_focus(@step.index, @step_count))}
+              disabled={@step.index == @step_count - 1}
+              class="btn btn-ghost btn-sm btn-square text-base-content/70"
+              aria-label={"Move step #{@step.index + 1} down"}
+            >
+              <.icon name="hero-chevron-down" class="size-4" />
+            </.button>
+            <.button
+              id={"remove-step-#{@step.index}"}
+              type="button"
+              name="mission[steps_drop][]"
+              value={@step.index}
+              phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
+              class="btn btn-ghost btn-sm btn-square text-base-content/70 hover:text-error"
+              aria-label={"Remove step #{@step.index + 1}"}
+            >
+              <.icon name="hero-x-mark" class="size-4" />
+            </.button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <.step_warning index={@step.index} warning={@warning} />
+          <.step_details index={@step.index} detail={@detail} mass={@mass} />
+        </div>
+        <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
       </div>
-      <div class="join join-vertical mt-1 sm:join-horizontal">
-        <.button
-          id={"move-step-up-#{@step.index}"}
-          type="button"
-          name="mission[steps_swap]"
-          value={@step.index - 1}
-          phx-click={change_and_focus(move_up_focus(@step.index))}
-          disabled={@step.index == 0}
-          class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
-          aria-label={"Move step #{@step.index + 1} up"}
-        >
-          <.icon name="hero-chevron-up" class="size-5" />
-        </.button>
-        <.button
-          id={"move-step-down-#{@step.index}"}
-          type="button"
-          name="mission[steps_swap]"
-          value={@step.index}
-          phx-click={change_and_focus(move_down_focus(@step.index, @step_count))}
-          disabled={@step.index == @step_count - 1}
-          class="btn btn-ghost btn-sm btn-square join-item sm:btn-md"
-          aria-label={"Move step #{@step.index + 1} down"}
-        >
-          <.icon name="hero-chevron-down" class="size-5" />
-        </.button>
-        <.button
-          id={"remove-step-#{@step.index}"}
-          type="button"
-          name="mission[steps_drop][]"
-          value={@step.index}
-          phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
-          class="btn btn-ghost btn-sm btn-square join-item hover:text-error sm:btn-md"
-          aria-label={"Remove step #{@step.index + 1}"}
-        >
-          <.icon name="hero-x-mark" class="size-5" />
-        </.button>
-      </div>
-      <%!-- Below the step's controls, from the second grid column: the row's grid flows
-           in columns, so list-col-wrap would only move it to the second row --%>
-      <div class="col-[2/4] row-start-2 -mt-2 space-y-2">
-        <.step_warning index={@step.index} warning={@warning} />
-        <.step_details index={@step.index} detail={@detail} mass={@mass} />
-      </div>
-      <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
-    </div>
+      <hr :if={@step.index < @step_count - 1} class="bg-base-300" />
+    </li>
     """
   end
+
+  # The step's action and planet, once both are chosen
+  defp chosen(step) do
+    case {Ecto.Changeset.get_field(step, :action), Ecto.Changeset.get_field(step, :planet)} do
+      {nil, _planet} -> nil
+      {_action, nil} -> nil
+      chosen -> chosen
+    end
+  end
+
+  defp step_title({action, planet}), do: action_on(action, planet)
+  defp step_title(nil), do: "Choose an action and a planet"
+
+  defp step_icon({:launch, _planet}), do: "hero-arrow-up-right"
+  defp step_icon({:land, _planet}), do: "hero-arrow-down-right"
+  defp step_icon(nil), do: "hero-ellipsis-horizontal"
 
   defp change_and_focus(nil), do: JS.dispatch("change")
   defp change_and_focus(selector), do: "change" |> JS.dispatch() |> JS.focus(to: selector)
@@ -375,13 +410,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
             @errors != [] && "border-error"
           ]}
         >
+          <%!-- An added step focuses this radio, near its top: below lg the margin keeps
+               the rest of the step out from under the fixed fuel bar --%>
           <input
             type="radio"
             id={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
             name={@field.name}
             value={value}
             checked={to_string(value) == @checked}
-            class="sr-only"
+            class="sr-only max-lg:scroll-mb-24"
           />
           <.icon name={action_icon(value)} class="size-4" />
           {label}
