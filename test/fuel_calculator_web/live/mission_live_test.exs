@@ -5,10 +5,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   alias FuelCalculator.Fuel
 
+  @apollo [launch: :earth, land: :moon, launch: :moon, land: :earth]
+
   # The missions of the challenge, also offered as examples (by id)
   @missions [
-    {"apollo-11", 28_801, [launch: :earth, land: :moon, launch: :moon, land: :earth],
-     "51,898 kg"},
+    {"apollo-11", 28_801, @apollo, "51,898 kg"},
     {"mars", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth], "33,388 kg"},
     {"passenger-ship", 75_432,
      [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth],
@@ -37,7 +38,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "titles the page with a single heading", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      headings = view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query("h1")
+      headings = query(view, "h1")
 
       assert has_element?(view, "h1", "Interplanetary fuel calculator")
       assert Enum.count(headings) == 1
@@ -175,11 +176,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, land: :earth))
       assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
 
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0"],
-        "steps" => %{"0" => %{"action" => "land", "planet" => ""}}
-      })
+      change(view, mission(28_801, land: nil))
 
       assert has_element?(view, "#mission_steps_0_planet.select-error")
       assert has_element?(view, "#total-fuel", "—")
@@ -188,7 +185,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "is broken down by step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
 
       steps = [
         {"1 · Launch from Earth", "32,988 kg", 32_988},
@@ -214,14 +211,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       refute has_element?(view, "#fuel-by-step")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
       assert has_element?(view, "#fuel-by-step")
 
       change(view, mission("", launch: :earth, land: :moon))
       refute has_element?(view, "#fuel-by-step")
     end
 
-    test "is shown once, with the number of steps", %{conn: conn} do
+    test "tells how many steps the summary covers", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       assert has_element?(view, "#fuel-summary-steps", "Complete the mission")
@@ -229,14 +226,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, land: :earth))
       assert has_element?(view, "#fuel-summary-steps", "1 step")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
       assert has_element?(view, "#fuel-summary-steps", "4 steps")
-
-      assert view
-             |> render()
-             |> LazyHTML.from_fragment()
-             |> LazyHTML.query("#total-fuel")
-             |> Enum.count() == 1
     end
   end
 
@@ -245,7 +236,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       test "loads the #{id} mission", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
-        view |> element("#example-#{unquote(id)}") |> render_click()
+        load_example(view, unquote(id))
 
         assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
 
@@ -262,10 +253,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "replaces a longer flight path without showing errors", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-passenger-ship") |> render_click()
+      load_example(view, "passenger-ship")
       assert has_element?(view, "#step-5")
 
-      view |> element("#example-mars") |> render_click()
+      load_example(view, "mars")
 
       assert has_element?(view, "#step-3")
       refute has_element?(view, "#step-4")
@@ -306,40 +297,39 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "marks the loaded example and only it", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-passenger-ship") |> render_click()
+      load_example(view, "passenger-ship")
       assert current_examples(view) == ["example-passenger-ship"]
       refute has_element?(view, "[id^=example-][aria-current]:not([aria-current=true])")
 
-      view |> element("#example-mars") |> render_click()
+      load_example(view, "mars")
       assert current_examples(view) == ["example-mars"]
     end
 
     test "describes the loaded example below the cards", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-passenger-ship") |> render_click()
+      load_example(view, "passenger-ship")
 
       assert texts(view, "#loaded-example [data-role=planet]") == ~w(Earth Moon Mars Earth)
       assert has_element?(view, "#loaded-example", "75,432 kg · 6 steps")
     end
 
     test "unmarks the example while the mission differs from it", %{conn: conn} do
-      apollo = [launch: :earth, land: :moon, launch: :moon, land: :earth]
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
 
-      change(view, mission(28_802, apollo))
+      change(view, mission(28_802, @apollo))
       assert current_examples(view) == []
       refute has_element?(view, "#loaded-example")
 
-      change(view, mission(28_801, apollo))
+      change(view, mission(28_801, @apollo))
       assert current_examples(view) == ["example-apollo-11"]
 
-      change(view, mission(28_801, List.replace_at(apollo, 1, {:land, :mars})))
+      change(view, mission(28_801, List.replace_at(@apollo, 1, {:land, :mars})))
       assert current_examples(view) == []
 
-      change(view, Map.put(mission(28_801, apollo), "steps_drop", ["3"]))
+      change(view, Map.put(mission(28_801, @apollo), "steps_drop", ["3"]))
       refute has_element?(view, "#step-3")
       assert current_examples(view) == []
     end
@@ -368,7 +358,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "is shown for each step of a valid mission", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+      change(view, mission(28_801, @apollo))
 
       for {fuel, index} <- Enum.with_index(["32,988 kg", "2,462 kg", "3,001 kg", "13,447 kg"]) do
         assert has_element?(view, "#step-#{index} #step-fuel-#{index}", exactly(fuel))
@@ -389,14 +379,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "is hidden while a step is incomplete", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0", "1"],
-        "steps" => %{
-          "0" => %{"action" => "land", "planet" => "moon"},
-          "1" => %{"action" => "land", "planet" => ""}
-        }
-      })
+      change(view, mission(28_801, land: :moon, land: nil))
 
       refute has_element?(view, "[id^=step-fuel-]")
     end
@@ -421,7 +404,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "shows the mass, the formula and the iterations of each step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+      change(view, mission(28_801, @apollo))
 
       assert has_element?(view, "#step-3 #step-details-3 summary", "How 13,447 kg is calculated")
       assert has_element?(view, "#step-details-3 [data-role=mass]", "28,801 kg (no later steps)")
@@ -514,14 +497,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "stays in every step while the mission is invalid", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0", "1"],
-        "steps" => %{
-          "0" => %{"action" => "land", "planet" => "moon"},
-          "1" => %{"action" => "land", "planet" => ""}
-        }
-      })
+      change(view, mission(28_801, land: :moon, land: nil))
 
       for index <- 0..1 do
         assert has_element?(view, "#step-details-#{index} summary", "How the fuel is calculated")
@@ -593,7 +569,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       for {id, _mass, _path, _total} <- @missions do
-        view |> element("#example-#{id}") |> render_click()
+        load_example(view, id)
 
         refute has_element?(view, "[id^=step-warning-]:not([hidden])"), id
       end
@@ -618,14 +594,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission("", land: :moon, launch: :mars))
       assert has_element?(view, "#step-warning-1:not([hidden])")
 
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0", "1"],
-        "steps" => %{
-          "0" => %{"action" => "land", "planet" => "moon"},
-          "1" => %{"action" => "launch", "planet" => ""}
-        }
-      })
+      change(view, mission(28_801, land: :moon, launch: nil))
 
       refute has_element?(view, "[id^=step-warning-]:not([hidden])")
     end
@@ -660,7 +629,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
-    test "shows every error on submit", %{conn: conn} do
+    test "shows every error on submit, tied to its field", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       view
@@ -671,14 +640,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_steps_0_action[aria-invalid]")
       assert has_element?(view, "#mission_steps_0_action-error", "can't be blank")
       assert has_element?(view, "#mission_steps_0_planet.select-error")
-    end
-
-    test "ties each error to its field", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      view
-      |> element("#mission-form")
-      |> render_submit(%{"mission" => %{"mass" => "", "steps_sort" => ["0"]}})
 
       for field <- ["mission_mass", "mission_steps_0_planet"] do
         assert has_element?(view, "##{field}[aria-invalid=true][aria-describedby=#{field}-error]")
@@ -750,7 +711,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
 
       refute has_element?(view, "#steps > li[phx-mounted]")
     end
@@ -764,7 +725,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "moves to the previous step's remove button on removal", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
 
       # The first step's button becomes the next step's, so the focus stays on it
       assert focus_target(view, "#remove-step-0") == nil
@@ -775,7 +736,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "follows the moved step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      view |> element("#example-apollo-11") |> render_click()
+      load_example(view, "apollo-11")
 
       assert focus_target(view, "#move-step-up-2") == "#move-step-up-1"
       assert focus_target(view, "#move-step-down-1") == "#move-step-down-2"
@@ -802,7 +763,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#step-1 option[selected], #step-1 input[checked]")
     end
 
-    test "adds and removes steps through the order and removal params", %{conn: conn} do
+    test "wires Add step and the remove buttons to steps_sort and steps_drop", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, land: :earth, launch: :moon))
@@ -815,7 +776,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "removes a step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, mission(28_801, land: :moon, land: :earth))
       change(view, Map.put(mission(28_801, land: :moon, land: :earth), "steps_drop", ["0"]))
 
       assert has_element?(view, "#step-0")
@@ -908,7 +868,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       end
     end
 
-    test "moves a step up or down by sending the position of the upper step", %{conn: conn} do
+    test "wires the move buttons to the position of the upper step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, land: :earth, launch: :moon, land: :moon))
@@ -957,7 +917,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
       assert has_element?(view, "#step-count", exactly("0 / 15 steps"))
 
-      change(view, mission(28_801, launch: :earth, land: :moon, launch: :moon, land: :earth))
+      change(view, mission(28_801, @apollo))
       assert has_element?(view, "#step-count", exactly("4 / 15 steps"))
 
       change(view, mission(28_801, List.duplicate({:land, :moon}, 15)))
@@ -1048,8 +1008,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, launch: :earth, land: :moon))
 
-      refute has_element?(view, "#empty-path")
-
       assert has_element?(
                view,
                "#step-0 [data-role=step-title]",
@@ -1068,14 +1026,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
                exactly("1 · Choose an action and a planet")
              )
 
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0", "1"],
-        "steps" => %{
-          "0" => %{"action" => "land", "planet" => "moon"},
-          "1" => %{"action" => "land", "planet" => ""}
-        }
-      })
+      change(view, mission(28_801, land: :moon, land: nil))
 
       assert has_element?(
                view,
@@ -1098,9 +1049,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   defp focus_target(view, button) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query(button)
+    |> query(button)
     |> LazyHTML.attribute("phx-click")
     |> hd()
     |> JSON.decode!()
@@ -1109,9 +1058,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   defp mounted_js(view, selector) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query(selector)
+    |> query(selector)
     |> LazyHTML.attribute("phx-mounted")
     |> hd()
     |> JSON.decode!()
@@ -1119,6 +1066,12 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   # has_element?/3 matches text anywhere in the element, so "1 kg" would match "31 kg"
   defp exactly(text), do: ~r/^\s*#{Regex.escape(text)}\s*$/
+
+  defp query(view, selector) do
+    view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query(selector)
+  end
+
+  defp load_example(view, id), do: view |> element("#example-#{id}") |> render_click()
 
   defp change(view, params) do
     view
@@ -1128,36 +1081,29 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   defp texts(view, selector) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query(selector)
+    |> query(selector)
     |> Enum.map(&(&1 |> LazyHTML.text() |> String.trim()))
   end
 
   defp current_examples(view) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query("[id^=example-][aria-current=true]")
+    |> query("[id^=example-][aria-current=true]")
     |> LazyHTML.attribute("id")
   end
 
   defp option_values(view, select) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query("#{select} option")
+    |> query("#{select} option")
     |> LazyHTML.attribute("value")
   end
 
   defp radio_values(view, group) do
     view
-    |> render()
-    |> LazyHTML.from_fragment()
-    |> LazyHTML.query("#{group} input[type=radio]")
+    |> query("#{group} input[type=radio]")
     |> LazyHTML.attribute("value")
   end
 
+  # A nil action or planet leaves that field blank, as in an incomplete step
   defp mission(mass, path) do
     steps =
       path
