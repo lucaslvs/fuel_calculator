@@ -154,7 +154,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
       <fieldset id="flight-path-steps" class="fieldset p-0">
         <legend class="sr-only">Steps</legend>
         <ul id="steps" class="timeline timeline-vertical timeline-compact w-full">
-          <.inputs_for :let={step} field={@field}>
+          <%!-- A ul only holds li, so each step renders its own hidden fields --%>
+          <.inputs_for :let={step} field={@field} skip_hidden>
             <.step_row
               step={step}
               step_count={@step_count}
@@ -343,6 +344,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.step_details index={@step.index} detail={@detail} mass={@mass} />
         </div>
         <input type="hidden" name="mission[steps_sort][]" value={@step.index} />
+        <input
+          :for={{name, value} <- @step.hidden}
+          type="hidden"
+          name={Phoenix.HTML.Form.input_name(@step, name)}
+          value={value}
+        />
       </div>
       <hr class="bg-base-300" aria-hidden="true" />
     </li>

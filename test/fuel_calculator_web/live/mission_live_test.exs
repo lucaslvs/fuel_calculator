@@ -943,6 +943,21 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "hr:not([aria-hidden=true])")
     end
 
+    test "keeps only list items in the steps list", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :moon, launch: :moon))
+
+      refute has_element?(view, "#steps > :not(li)")
+
+      for index <- [0, 1] do
+        assert has_element?(
+                 view,
+                 "#step-#{index} input[type=hidden][name='mission[steps][#{index}][_persistent_id]']"
+               )
+      end
+    end
+
     test "disables adding a step at 15 steps", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
