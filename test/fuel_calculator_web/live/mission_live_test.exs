@@ -566,6 +566,18 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       for index <- [0, 1, 3], do: assert(has_element?(view, "#step-warning-#{index}[hidden]"))
     end
 
+    test "are announced by screen readers when they appear", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#step-0 [aria-live=polite] > #step-warning-0[hidden]")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      assert has_element?(view, "#step-2 [aria-live=polite] > #step-warning-2:not([hidden])")
+      # The calculation changes on every keystroke, so it stays out of the live region
+      refute has_element?(view, "[aria-live] [id^=step-details-]")
+    end
+
     test "point out a launch right after another launch", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 

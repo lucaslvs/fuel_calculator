@@ -347,7 +347,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             </.button>
           </div>
         </div>
-        <div class="space-y-2">
+        <div>
           <.step_warning index={@step.index} warning={@warning} />
           <.step_details
             index={@step.index}
@@ -403,16 +403,20 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :warning, :any, default: nil
 
   # Hidden rather than removed: inserting it would move the details after it, and
-  # moving the focused summary drops its focus
+  # moving the focused summary drops its focus. The live region around it is always
+  # there, since screen readers only announce changes inside an existing region, and
+  # the warning carries the margin so the empty region takes no space.
   defp step_warning(assigns) do
     ~H"""
-    <div
-      id={"step-warning-#{@index}"}
-      hidden={is_nil(@warning)}
-      class="alert alert-warning alert-soft items-start gap-2 px-3 py-2 text-sm text-base-content"
-    >
-      <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
-      <p>{@warning && warning_message(@warning, @index)} The fuel is still calculated.</p>
+    <div aria-live="polite">
+      <div
+        id={"step-warning-#{@index}"}
+        hidden={is_nil(@warning)}
+        class="alert alert-warning alert-soft mb-2 items-start gap-2 px-3 py-2 text-sm text-base-content"
+      >
+        <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
+        <p>{@warning && warning_message(@warning, @index)} The fuel is still calculated.</p>
+      </div>
     </div>
     """
   end
