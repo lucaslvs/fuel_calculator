@@ -11,13 +11,26 @@ defmodule FuelCalculatorWeb.MissionLive do
   alias FuelCalculator.FlightPath
   alias FuelCalculator.Mission
 
-  # The missions of the challenge, as {id, label, mass, flight path}
+  # The missions of the challenge
   @examples [
-    {"apollo-11", "Apollo 11", 28_801,
-     [launch: :earth, land: :moon, launch: :moon, land: :earth]},
-    {"mars", "Mars mission", 14_606, [launch: :earth, land: :mars, launch: :mars, land: :earth]},
-    {"passenger-ship", "Passenger ship", 75_432,
-     [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth]}
+    %{
+      id: "apollo-11",
+      label: "Apollo 11",
+      mass: 28_801,
+      path: [launch: :earth, land: :moon, launch: :moon, land: :earth]
+    },
+    %{
+      id: "mars",
+      label: "Mars mission",
+      mass: 14_606,
+      path: [launch: :earth, land: :mars, launch: :mars, land: :earth]
+    },
+    %{
+      id: "passenger-ship",
+      label: "Passenger ship",
+      mass: 75_432,
+      path: [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth]
+    }
   ]
 
   @impl true
@@ -41,8 +54,8 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   def handle_event("load_example", %{"id" => id}, socket) do
-    case List.keyfind(@examples, id, 0) do
-      {^id, _label, mass, path} -> {:noreply, assign_mission(socket, mission_params(mass, path))}
+    case Enum.find(@examples, &(&1.id == id)) do
+      %{mass: mass, path: path} -> {:noreply, assign_mission(socket, mission_params(mass, path))}
       nil -> {:noreply, socket}
     end
   end
@@ -122,7 +135,7 @@ defmodule FuelCalculatorWeb.MissionLive do
       mass: mass,
       focus_step: nil,
       fuel: fuel,
-      loaded_example: loaded_example(mass, path),
+      current_example_id: current_example_id(mass, path),
       step_count: length(path),
       warnings: FlightPath.warnings(path)
     )
@@ -130,9 +143,9 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   # The example the mission matches, whether it was loaded or typed in, so editing
   # any of its values unmarks it
-  defp loaded_example(mass, path) do
+  defp current_example_id(mass, path) do
     Enum.find_value(@examples, fn
-      {id, _label, ^mass, ^path} -> id
+      %{id: id, mass: ^mass, path: ^path} -> id
       _example -> nil
     end)
   end
@@ -165,7 +178,7 @@ defmodule FuelCalculatorWeb.MissionLive do
             </p>
           </header>
 
-          <.example_buttons examples={@examples} loaded={@loaded_example} />
+          <.example_cards examples={@examples} current_id={@current_example_id} />
 
           <div class="card card-border bg-base-100 shadow-sm">
             <.form

@@ -22,12 +22,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
   """
   attr :examples, :list,
     required: true,
-    doc: "the example missions, as `{id, label, mass, flight path}` tuples"
+    doc: "the example missions, as maps with their `:id`, `:label`, `:mass` and `:path`"
 
-  attr :loaded, :string, default: nil, doc: "the id of the example the mission matches"
+  attr :current_id, :string, default: nil, doc: "the id of the example the mission matches"
 
-  def example_buttons(assigns) do
-    assigns = assign(assigns, :loaded_example, List.keyfind(assigns.examples, assigns.loaded, 0))
+  def example_cards(assigns) do
+    assigns =
+      assign(assigns, :current, Enum.find(assigns.examples, &(&1.id == assigns.current_id)))
 
     ~H"""
     <div class="space-y-2">
@@ -37,46 +38,44 @@ defmodule FuelCalculatorWeb.MissionComponents do
       </div>
       <div class="grid grid-cols-3 gap-2">
         <button
-          :for={{id, label, mass, path} <- @examples}
-          id={"example-#{id}"}
+          :for={example <- @examples}
+          id={"example-#{example.id}"}
           type="button"
           phx-click="load_example"
-          phx-value-id={id}
-          aria-current={id == @loaded && "true"}
+          phx-value-id={example.id}
+          aria-current={example.id == @current_id && "true"}
           class={[
             "card card-sm card-border bg-base-100 cursor-pointer text-start sm:transition-colors sm:hover:border-primary",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-            id == @loaded && "border-primary"
+            example.id == @current_id && "border-primary"
           ]}
         >
           <span class="card-body gap-1 p-2 sm:p-3">
             <span class="flex items-start justify-between gap-1">
-              <span class="font-semibold leading-tight">{label}</span>
+              <span class="font-semibold leading-tight">{example.label}</span>
               <.icon
-                :if={id == @loaded}
+                :if={example.id == @current_id}
                 name="hero-check-circle-mini"
                 class="size-4 shrink-0 text-primary max-sm:hidden"
               />
             </span>
-            <.example_route path={path} class="max-sm:hidden" />
+            <.example_route path={example.path} class="max-sm:hidden" />
             <span data-role="size" class="text-xs tabular-nums text-base-content/80 max-sm:hidden">
-              {example_size(mass, path)}
+              {example_size(example)}
             </span>
             <span class="text-xs tabular-nums text-base-content/80 sm:hidden">
-              {length(path)} steps
+              {length(example.path)} steps
             </span>
           </span>
         </button>
       </div>
       <p
-        :if={@loaded_example}
+        :if={@current}
         id="loaded-example"
         class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/80 sm:hidden"
       >
-        <.example_route path={elem(@loaded_example, 3)} />
-        <span class="tabular-nums">
-          · {example_size(elem(@loaded_example, 2), elem(@loaded_example, 3))}
-        </span>
+        <.example_route path={@current.path} />
+        <span class="tabular-nums">· {example_size(@current)}</span>
       </p>
     </div>
     """
@@ -104,7 +103,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     """
   end
 
-  defp example_size(mass, path), do: "#{format_kg(mass)} · #{length(path)} steps"
+  defp example_size(example), do: "#{format_kg(example.mass)} · #{length(example.path)} steps"
 
   @doc """
   Renders the flight path as a timeline: the spacecraft first, then a node per step, and
