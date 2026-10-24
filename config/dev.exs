@@ -62,3 +62,7 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
+
+# The Tidewave toolbar and the error pages use inline scripts and styles, so
+# development keeps Phoenix's default content security policy
+config :fuel_calculator, strict_csp: false

@@ -79,6 +79,14 @@ the coverage badge and lints itself with [actionlint](https://github.com/rhysd/a
 - The fuel of each step appears only when the whole mission is valid, since each
   step depends on the steps after it.
 
+### Security
+
+- Pages are served with a strict Content-Security-Policy: scripts, styles,
+  images and connections come only from the app's own origin and its websocket,
+  and the inline theme script runs with a per-request nonce. Development keeps
+  Phoenix's default policy, since the Tidewave toolbar and the error pages rely
+  on inline code.
+
 ### Quality
 
 - The three scenarios from the challenge are tested in the domain, the
