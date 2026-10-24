@@ -181,8 +181,10 @@ defmodule FuelCalculator.MissionTest do
 
   describe "calculate/1" do
     test "returns the fuel of a valid mission" do
-      assert {:ok, %{total: 51_898, steps: [32_988, 2462, 3001, 13_447]}} =
+      assert {:ok, %{total: 51_898, details: details}} =
                Mission.calculate(cast(%{"mass" => "28801", "steps" => @apollo_11}))
+
+      assert Enum.map(details, & &1.fuel) == [32_988, 2462, 3001, 13_447]
     end
 
     test "returns the changeset of an invalid mission with its errors" do
@@ -194,7 +196,7 @@ defmodule FuelCalculator.MissionTest do
 
   describe "fuel/1" do
     test "calculates the Apollo 11 mission" do
-      assert %{total: 51_898, steps: [32_988, 2462, 3001, 13_447], details: details} =
+      assert %{total: 51_898, details: details} =
                fuel(%{"mass" => "28801", "steps" => @apollo_11})
 
       assert details ==
@@ -226,7 +228,7 @@ defmodule FuelCalculator.MissionTest do
     end
 
     test "requires no fuel for an empty path" do
-      assert fuel(%{"mass" => "28801"}) == %{total: 0, steps: [], details: []}
+      assert fuel(%{"mass" => "28801"}) == %{total: 0, details: []}
     end
   end
 end

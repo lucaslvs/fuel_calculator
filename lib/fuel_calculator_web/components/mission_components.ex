@@ -76,7 +76,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.step_row
             step={step}
             step_count={@step_count}
-            fuel={@fuel && Enum.at(@fuel.steps, step.index)}
             detail={@fuel && Enum.at(@fuel.details, step.index)}
             mass={@mass}
             warning={Enum.at(@warnings, step.index)}
@@ -128,11 +127,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
   """
   attr :step, Phoenix.HTML.Form, required: true, doc: "the step's form, from `inputs_for`"
   attr :step_count, :integer, required: true
-  attr :fuel, :integer, default: nil, doc: "the step's fuel, or nil while the mission is invalid"
 
   attr :detail, :map,
     default: nil,
-    doc: "how the step's fuel is calculated (see `FuelCalculator.Fuel.explain/2`), or nil"
+    doc:
+      "the step's fuel and how it is calculated (see `FuelCalculator.Fuel.explain/2`), " <>
+        "or nil while the mission is invalid"
 
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :warning, :any, default: nil, doc: "why the step can't follow the previous one, or nil"
@@ -174,11 +174,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <%!-- Keeps its width while the mission is invalid, so the selects don't jump --%>
         <div class="flex w-full items-center sm:mb-2 sm:w-auto sm:min-w-28 sm:justify-end sm:py-1">
           <span
-            :if={@fuel}
+            :if={@detail}
             id={"step-fuel-#{@step.index}"}
             class="badge badge-soft badge-primary mb-2 tabular-nums sm:mb-0"
           >
-            {format_kg(@fuel)}
+            {format_kg(@detail.fuel)}
           </span>
         </div>
       </div>
@@ -288,7 +288,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     >
       <summary class="w-fit cursor-pointer text-base-content/70 hover:text-base-content">
         {if @detail,
-          do: "How #{format_kg(Enum.sum(@detail.iterations))} is calculated",
+          do: "How #{format_kg(@detail.fuel)} is calculated",
           else: "How the fuel is calculated"}<span class="sr-only"> in step {@index + 1}</span>
       </summary>
       <div class="mt-2 space-y-1 rounded-box bg-base-200 p-3 tabular-nums wrap-anywhere">
@@ -303,7 +303,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 <strong>{format_kg(fuel)}</strong>
               <% iterations -> %>
                 {Enum.map_join(iterations, " + ", &format_number/1)} =
-                <strong>{format_kg(Enum.sum(iterations))}</strong>
+                <strong>{format_kg(@detail.fuel)}</strong>
             <% end %>
           </p>
         <% else %>

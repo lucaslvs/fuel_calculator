@@ -66,7 +66,7 @@ defmodule FuelCalculator.FuelTest do
   end
 
   describe "explain/2" do
-    test "returns the mass and the fuel iterations of each Apollo 11 step" do
+    test "returns the mass, the fuel iterations and the fuel of each Apollo 11 step" do
       path = [launch: :earth, land: :moon, launch: :moon, land: :earth]
 
       assert Fuel.explain(28_801, path) == [
@@ -74,15 +74,23 @@ defmodule FuelCalculator.FuelTest do
                  action: :launch,
                  planet: :earth,
                  mass: 47_711,
-                 iterations: [19_618, 8047, 3281, 1318, 509, 176, 39]
+                 iterations: [19_618, 8047, 3281, 1318, 509, 176, 39],
+                 fuel: 32_988
                },
-               %{action: :land, planet: :moon, mass: 45_249, iterations: [2377, 85]},
-               %{action: :launch, planet: :moon, mass: 42_248, iterations: [2841, 160]},
+               %{action: :land, planet: :moon, mass: 45_249, iterations: [2377, 85], fuel: 2462},
+               %{
+                 action: :launch,
+                 planet: :moon,
+                 mass: 42_248,
+                 iterations: [2841, 160],
+                 fuel: 3001
+               },
                %{
                  action: :land,
                  planet: :earth,
                  mass: 28_801,
-                 iterations: [9278, 2960, 915, 254, 40]
+                 iterations: [9278, 2960, 915, 254, 40],
+                 fuel: 13_447
                }
              ]
     end

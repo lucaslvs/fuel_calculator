@@ -15,7 +15,8 @@ defmodule FuelCalculator.Fuel do
           action: action(),
           planet: Planet.t(),
           mass: pos_integer(),
-          iterations: [pos_integer()]
+          iterations: [pos_integer()],
+          fuel: non_neg_integer()
         }
 
   @doc """
@@ -69,14 +70,21 @@ defmodule FuelCalculator.Fuel do
   @doc """
   Returns how the fuel of each step is calculated when flying `mass` along
   `path`, in the order of the path: the mass the step carries, which includes
-  the fuel for the later steps, and the `iterations/3` for that mass.
+  the fuel for the later steps, the `iterations/3` for that mass and their sum,
+  the step's fuel.
 
   ## Examples
 
       iex> FuelCalculator.Fuel.explain(28801, [{:launch, :moon}, {:land, :earth}])
       [
-        %{action: :launch, planet: :moon, mass: 42248, iterations: [2841, 160]},
-        %{action: :land, planet: :earth, mass: 28801, iterations: [9278, 2960, 915, 254, 40]}
+        %{action: :launch, planet: :moon, mass: 42248, iterations: [2841, 160], fuel: 3001},
+        %{
+          action: :land,
+          planet: :earth,
+          mass: 28801,
+          iterations: [9278, 2960, 915, 254, 40],
+          fuel: 13447
+        }
       ]
 
   """
@@ -86,8 +94,17 @@ defmodule FuelCalculator.Fuel do
     |> Enum.reverse()
     |> Enum.map_reduce(0, fn {action, planet}, carried ->
       iterations = iterations(mass + carried, action, planet)
-      detail = %{action: action, planet: planet, mass: mass + carried, iterations: iterations}
-      {detail, carried + Enum.sum(iterations)}
+      fuel = Enum.sum(iterations)
+
+      detail = %{
+        action: action,
+        planet: planet,
+        mass: mass + carried,
+        iterations: iterations,
+        fuel: fuel
+      }
+
+      {detail, carried + fuel}
     end)
     |> elem(0)
     |> Enum.reverse()
@@ -113,7 +130,7 @@ defmodule FuelCalculator.Fuel do
   """
   @spec breakdown(pos_integer(), [step()]) :: [non_neg_integer()]
   def breakdown(mass, path) when is_integer(mass) and mass > 0 and is_list(path) do
-    for %{iterations: iterations} <- explain(mass, path), do: Enum.sum(iterations)
+    for %{fuel: fuel} <- explain(mass, path), do: fuel
   end
 
   @doc """
