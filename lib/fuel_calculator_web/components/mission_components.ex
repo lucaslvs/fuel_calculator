@@ -52,8 +52,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
     doc: "a warning or nil for each step (see `FuelCalculator.FlightPath.warnings/1`)"
 
   attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
-  attr :action_options, :list, required: true
-  attr :planet_options, :list, required: true
 
   def flight_path(assigns) do
     ~H"""
@@ -80,8 +78,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
             mass={@mass}
             warning={Enum.at(@warnings, step.index)}
             focus={step.index == @focus_step}
-            action_options={@action_options}
-            planet_options={@planet_options}
           />
         </.inputs_for>
       </div>
@@ -137,8 +133,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :warning, :any, default: nil, doc: "why the step can't follow the previous one, or nil"
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
-  attr :action_options, :list, required: true
-  attr :planet_options, :list, required: true
 
   def step_row(assigns) do
     ~H"""
@@ -158,7 +152,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.action_toggle
             field={@step[:action]}
             label={"Step #{@step.index + 1} action"}
-            options={@action_options}
+            options={action_options()}
           />
         </div>
         <div class="min-w-28 flex-1">
@@ -166,7 +160,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             field={@step[:planet]}
             type="select"
             prompt="Planet"
-            options={@planet_options}
+            options={planet_options()}
             aria-label={"Step #{@step.index + 1} planet"}
             aria-describedby={@warning && "step-warning-#{@step.index}"}
           />
@@ -332,7 +326,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp action_on(:land, planet), do: "Land on #{planet_name(planet)}"
 
   defp planet_name(:moon), do: "the Moon"
-  defp planet_name(planet), do: planet |> Atom.to_string() |> String.capitalize()
+  defp planet_name(planet), do: capitalize(planet)
+
+  defp action_options, do: Enum.map(Fuel.actions(), &{capitalize(&1), &1})
+  defp planet_options, do: Enum.map(Planet.all(), &{capitalize(&1), &1})
+
+  defp capitalize(atom), do: atom |> Atom.to_string() |> String.capitalize()
 
   @doc """
   Renders a step's action as a group of radio buttons, one per action.

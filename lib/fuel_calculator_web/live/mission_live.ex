@@ -10,11 +10,6 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   alias FuelCalculator.FlightPath
   alias FuelCalculator.Mission
-  alias FuelCalculator.Mission.Step
-  alias FuelCalculator.Planet
-
-  @action_options Enum.map(Ecto.Enum.values(Step, :action), &{String.capitalize("#{&1}"), &1})
-  @planet_options Enum.map(Planet.all(), &{String.capitalize("#{&1}"), &1})
 
   # The missions of the challenge, as {id, label, mass, flight path}
   @examples [
@@ -30,8 +25,6 @@ defmodule FuelCalculatorWeb.MissionLive do
     {:ok,
      socket
      |> assign(
-       action_options: @action_options,
-       planet_options: @planet_options,
        examples: @examples,
        max_mass: Mission.max_mass(),
        max_steps: Mission.max_steps()
@@ -187,8 +180,6 @@ defmodule FuelCalculatorWeb.MissionLive do
                 mass={@mass}
                 warnings={@warnings}
                 focus_step={@focus_step}
-                action_options={@action_options}
-                planet_options={@planet_options}
               />
             </.form>
           </div>

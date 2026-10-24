@@ -8,6 +8,8 @@ defmodule FuelCalculator.Fuel do
 
   alias FuelCalculator.Planet
 
+  @actions [:launch, :land]
+
   @type action :: :launch | :land
   @type step :: {action(), Planet.t()}
 
@@ -18,6 +20,18 @@ defmodule FuelCalculator.Fuel do
           iterations: [pos_integer()],
           fuel: non_neg_integer()
         }
+
+  @doc """
+  Returns the supported actions, in display order.
+
+  ## Examples
+
+      iex> FuelCalculator.Fuel.actions()
+      [:launch, :land]
+
+  """
+  @spec actions() :: [action()]
+  def actions, do: @actions
 
   @doc """
   Returns the fuel required for a single `action` on `planet` with `mass`,
@@ -44,7 +58,7 @@ defmodule FuelCalculator.Fuel do
   """
   @spec iterations(pos_integer(), action(), Planet.t()) :: [pos_integer()]
   def iterations(mass, action, planet)
-      when is_integer(mass) and mass > 0 and action in [:launch, :land] do
+      when is_integer(mass) and mass > 0 and action in @actions do
     case base_fuel(mass, action, planet) do
       fuel when fuel > 0 -> [fuel | iterations(fuel, action, planet)]
       _ -> []

@@ -14,7 +14,7 @@ defmodule FuelCalculator.Mission.Step do
 
   @primary_key false
   embedded_schema do
-    field :action, Ecto.Enum, values: [:launch, :land]
+    field :action, Ecto.Enum, values: Fuel.actions()
     field :planet, Ecto.Enum, values: Planet.all()
   end
 
