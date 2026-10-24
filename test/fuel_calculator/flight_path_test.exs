@@ -14,7 +14,7 @@ defmodule FuelCalculator.FlightPathTest do
             [launch: :earth, land: :mars, launch: :mars, land: :earth],
             [launch: :earth, land: :moon, launch: :moon, land: :mars, launch: :mars, land: :earth]
           ] do
-        assert Enum.all?(FlightPath.warnings(path), &is_nil/1)
+        assert FlightPath.warnings(path) == List.duplicate(nil, length(path))
       end
     end
 
@@ -60,7 +60,7 @@ defmodule FuelCalculator.FlightPathTest do
   describe "warnings/1 properties" do
     property "finds nothing wrong when every launch is from the planet of the last landing" do
       check all path <- flyable_path() do
-        assert Enum.all?(FlightPath.warnings(path), &is_nil/1)
+        assert FlightPath.warnings(path) == List.duplicate(nil, length(path))
       end
     end
 
