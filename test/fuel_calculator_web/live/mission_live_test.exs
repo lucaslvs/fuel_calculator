@@ -266,8 +266,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", exactly("33,388 kg"))
     end
 
-    test "shows each example's route, mass and steps", %{conn: conn} do
+    test "shows each example's name, route, mass and steps", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
+
+      for {id, name} <- [
+            {"apollo-11", "Apollo 11"},
+            {"mars", "Mars mission"},
+            {"passenger-ship", "Passenger ship"}
+          ] do
+        assert has_element?(view, "#example-#{id}", name)
+      end
 
       assert texts(view, "#example-apollo-11 [data-role=planet]") == ~w(Earth Moon Earth)
       assert texts(view, "#example-mars [data-role=planet]") == ~w(Earth Mars Earth)
@@ -525,7 +533,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
                "Launches from Mars, but step 2 landed on the Moon."
              )
 
-      assert has_element?(view, "#step-warning-2", "The fuel is still calculated.")
+      assert has_element?(view, "#step-warning-2:not([hidden])", "The fuel is still calculated.")
 
       assert has_element?(
                view,
