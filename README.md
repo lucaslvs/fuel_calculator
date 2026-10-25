@@ -85,7 +85,8 @@ and fails when a Hex dependency is retired or has a security advisory
 
 - Pages are served with a strict Content-Security-Policy: scripts, styles,
   images and connections come only from the app's own origin and its websocket,
-  and the inline theme script runs with a per-request nonce. Development keeps
+  and the pages have no inline scripts. There is a single dark theme, so no
+  script has to apply a theme before the page renders. Development keeps
   Phoenix's default policy, since the Tidewave toolbar and the error pages rely
   on inline code.
 - The fonts (IBM Plex Sans and Mono, OFL-1.1) are served from `priv/static/fonts`

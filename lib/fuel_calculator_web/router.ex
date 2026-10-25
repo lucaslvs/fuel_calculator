@@ -26,17 +26,9 @@ defmodule FuelCalculatorWeb.Router do
   #   pipe_through :api
   # end
 
-  # Inline scripts in the root layout must carry the nonce to run
-  defp put_content_security_policy(conn, _opts) do
-    nonce = 18 |> :crypto.strong_rand_bytes() |> Base.encode64()
-
-    conn
-    |> assign(:csp_nonce, nonce)
-    |> put_content_security_policy_header(nonce)
-  end
-
   if Application.compile_env(:fuel_calculator, :strict_csp, true) do
-    defp put_content_security_policy_header(conn, nonce) do
+    # The pages have no inline scripts, so scripts only come from the app's origin
+    defp put_content_security_policy(conn, _opts) do
       url = FuelCalculatorWeb.Endpoint.struct_url()
       websocket = URI.to_string(%{url | scheme: if(url.scheme == "https", do: "wss", else: "ws")})
 
@@ -44,7 +36,7 @@ defmodule FuelCalculatorWeb.Router do
         Enum.join(
           [
             "default-src 'self'",
-            "script-src 'self' 'nonce-#{nonce}'",
+            "script-src 'self'",
             "style-src 'self'",
             # The hero icons are CSS masks with data: URLs
             "img-src 'self' data:",
@@ -61,6 +53,6 @@ defmodule FuelCalculatorWeb.Router do
       put_resp_header(conn, "content-security-policy", policy)
     end
   else
-    defp put_content_security_policy_header(conn, _nonce), do: conn
+    defp put_content_security_policy(conn, _opts), do: conn
   end
 end
