@@ -110,7 +110,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders the flight path as a timeline: the spacecraft first, then a node per step, and
-  last the button that adds a step, with the steps' errors.
+  last the card that adds a step, with the steps' errors. The card only shows once a
+  step can follow, so the timeline is filled in order and ends at the node to fill in.
 
   The steps are a fieldset of their own, so screen readers don't announce the
   spacecraft's fields as part of their group.
@@ -131,6 +132,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
       "the step that would replace each step with a warning (see `FuelCalculator.FlightPath.fixes/1`)"
 
   attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
+
+  attr :next_step, :boolean,
+    default: false,
+    doc: "whether a step can follow: the mass is valid and the last step complete"
 
   slot :spacecraft, required: true, doc: "the spacecraft's fields, in the first node"
 
@@ -157,14 +162,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
       <ul class="timeline timeline-vertical timeline-compact mt-3 w-full" role="none">
         <li data-role="spacecraft" class="w-full [--timeline-row-start:0]" role="none">
           <div class="timeline-middle">
-            <%!-- In the primary color once the mass is valid, as a step is once its action is chosen --%>
+            <%!-- Dashed like the "Add step" node until the mass is valid, then in the
+                 primary color, as a step is once its action and planet are chosen --%>
             <span
               data-role="spacecraft-icon"
               class={[
-                "grid size-8 place-items-center rounded-full",
+                "grid size-8 place-items-center rounded-full transition-colors",
                 if(@mass,
                   do: "bg-primary text-primary-content",
-                  else: "bg-base-200 text-base-content"
+                  else: "border border-dashed border-base-content/40 text-base-content/80"
                 )
               ]}
             >
@@ -174,7 +180,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <div class="timeline-end ms-3 mb-5 w-[calc(100%-0.75rem)] min-w-0 pt-1">
             {render_slot(@spacecraft)}
           </div>
-          <hr class="bg-base-300" aria-hidden="true" />
+          <hr :if={@step_count > 0 or @next_step} class="bg-base-300" aria-hidden="true" />
         </li>
       </ul>
 
@@ -193,14 +199,19 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 warning={Enum.at(@warnings, step.index)}
                 fix={Enum.at(@fixes, step.index)}
                 next_warning={!is_nil(Enum.at(@warnings, step.index + 1))}
+                continues={step.index < @step_count - 1 or @next_step}
                 focus={step.index == @focus_step}
               />
             </.inputs_for>
           </ul>
-          <ul class="timeline timeline-vertical timeline-compact w-full" role="none">
+          <ul :if={@next_step} class="timeline timeline-vertical timeline-compact w-full" role="none">
             <%!-- The card opens the actions in its place: data-open marks the item while
                  they are shown, and the node turns into a close mark --%>
-            <li id="add-step-item" class="group/add w-full [--timeline-row-start:0]" role="none">
+            <li
+              id="add-step-item"
+              class="group/add w-full [--timeline-row-start:0] motion-safe:animate-fade-in"
+              role="none"
+            >
               <hr class="bg-base-300" aria-hidden="true" />
               <div class="timeline-middle">
                 <%!-- A larger target for the pointer; the keyboard reaches the card --%>
@@ -283,9 +294,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
                   <.icon name="hero-information-circle-micro" class="size-4" />
                   A flight path has at most {@max_steps} steps.
                 </p>
-                <p :if={@step_count == 0} id="empty-path" class="pt-1.5 text-sm text-base-content/80">
-                  No steps yet. Add a launch or a landing to plan the flight.
-                </p>
                 <div :if={@field.errors != []} id="steps-errors" class="pt-1.5">
                   <p
                     :for={msg <- Enum.map(@field.errors, &translate_error/1)}
@@ -331,6 +339,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :next_warning, :boolean,
     default: false,
     doc: "whether the next step can't follow this one"
+
+  attr :continues, :boolean,
+    default: true,
+    doc: "whether the timeline goes on below the step, to another step or to Add step"
 
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
 
@@ -428,7 +440,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
           value={value}
         />
       </div>
-      <hr class={if(@next_warning, do: "bg-warning", else: "bg-base-300")} aria-hidden="true" />
+      <hr
+        :if={@continues}
+        class={if(@next_warning, do: "bg-warning", else: "bg-base-300")}
+        aria-hidden="true"
+      />
     </li>
     """
   end
@@ -686,11 +702,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
   the bottom of the screen, with the number of steps (or what is missing, or a warning)
   in place of the icon, the description and the breakdown.
   """
-  attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
+  attr :fuel, :map,
+    default: nil,
+    doc: "the mission's fuel, or nil while it is invalid or has no steps"
 
   attr :missing, :list,
     default: [],
-    doc: "what the mission lacks (see `FuelCalculator.Mission.missing/1`)"
+    doc:
+      "what the mission lacks (see `FuelCalculator.Mission.missing/1`), and " <>
+        "`:first_step` while the flight path is empty"
 
   attr :warnings, :list,
     default: [],
@@ -731,7 +751,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             <%!-- One button for both labels, so its expanded state survives a new warning.
                  JS commands keep their changes across patches. --%>
             <.button
-              :if={@fuel && @fuel.details != []}
+              :if={@fuel}
               id="fuel-by-step-toggle"
               type="button"
               class="group btn btn-ghost btn-sm -me-2 gap-1 px-2 font-normal"
@@ -759,12 +779,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 class="size-4 transition-transform group-aria-expanded:rotate-180 motion-reduce:transition-none"
               />
             </.button>
-            <%= cond do %>
-              <% @fuel && @fuel.details != [] -> %>
-              <% @fuel -> %>
-                {steps_label(@step_count)}
-              <% true -> %>
-                {missing_label(@missing)}
+            <%= if is_nil(@fuel) do %>
+              {missing_label(@missing)}
             <% end %>
           </div>
           <div class="stat-title text-base-content/70">Total fuel required</div>
@@ -799,7 +815,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <.fuel_pending :if={!@fuel} missing={@missing} />
         </div>
         <.fuel_by_step
-          :if={@fuel && @fuel.details != []}
+          :if={@fuel}
           details={@fuel.details}
           warned={@warned}
         />
@@ -886,6 +902,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     """
   end
 
+  defp missing_sentence(:first_step), do: "Add the first step"
   defp missing_sentence({:mass, :blank}), do: "Enter the spacecraft mass"
   defp missing_sentence({:mass, :invalid}), do: "Enter a valid spacecraft mass"
 
@@ -899,6 +916,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp missing_label([first]), do: short_missing(first)
   defp missing_label([first | rest]), do: "#{short_missing(first)} · +#{length(rest)}"
 
+  defp short_missing(:first_step), do: "First step"
   defp short_missing({:mass, _reason}), do: "Spacecraft mass"
 
   defp short_missing({:step, index, fields}),

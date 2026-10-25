@@ -24,14 +24,13 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   describe "mount" do
-    test "starts with a blank mass, one blank step and no total", %{conn: conn} do
+    test "starts with a blank mass, no steps and no total", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       refute has_element?(view, "#mission_mass[value]:not([value=''])")
-      assert has_element?(view, "#step-0")
-      refute has_element?(view, "#step-1")
-      refute has_element?(view, "#step-0 option[selected], #step-0 input[checked]")
-      refute has_element?(view, "#empty-path")
+      refute has_element?(view, "#steps > li")
+      # The mass comes first, so there is nothing to add yet
+      refute has_element?(view, "#add-step")
       assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
@@ -79,6 +78,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
     test "offers every action and planet", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, [{nil, nil}]))
 
       assert radio_values(view, "#mission_steps_0_action") == ["launch", "land"]
       assert option_values(view, "#mission_steps_0_planet") == ["", "earth", "moon", "mars"]
@@ -287,6 +288,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#fuel-pending")
       refute has_element?(view, "#fuel-pending button")
+    end
+
+    test "asks for a first step instead of a total of 0 kg", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{"mass" => "28801"})
+
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
+      assert has_element?(view, "#fuel-pending p", exactly("Add the first step"))
+      assert has_element?(view, "#fuel-summary-steps", exactly("First step"))
     end
 
     test "asks for a valid mass", %{conn: conn} do
@@ -657,6 +668,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "are announced by screen readers when they appear", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      change(view, mission(28_801, launch: :earth))
       assert has_element?(view, "#step-0 [aria-live=polite] > #step-warning-0[hidden]")
 
       change(view, mission(28_801, @inconsistent_path))
@@ -938,7 +950,13 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       view
       |> element("#mission-form")
-      |> render_submit(%{"mission" => %{"mass" => "", "steps_sort" => ["0"]}})
+      |> render_submit(%{
+        "mission" => %{
+          "mass" => "",
+          "steps_sort" => ["0"],
+          "steps" => %{"0" => %{"action" => "", "planet" => ""}}
+        }
+      })
 
       assert has_element?(view, ".input-error #mission_mass")
       assert has_element?(view, "#mission_steps_0_action[aria-invalid]")
@@ -1024,6 +1042,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "moves to Add step when the only step is removed", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      change(view, mission(28_801, land: :earth))
+
       assert focus_target(view, "#remove-step-0") == "#add-step"
     end
 
@@ -1070,6 +1090,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "opens the actions in place of Add step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      change(view, %{"mass" => "28801"})
+
       assert has_element?(view, "#add-step-actions[role=group][aria-label='Add step']")
       assert has_element?(view, "#add-step-actions[phx-click-away]")
       assert has_element?(view, "#add-step-launch[phx-key=Escape][phx-keydown]")
@@ -1114,15 +1136,49 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
 
-    test "removing the only step leaves an empty path that needs no fuel", %{conn: conn} do
+    test "removing the only step asks for a first step again", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
+      change(view, mission(28_801, land: :earth))
+      change(view, Map.put(mission(28_801, land: :earth), "steps_drop", ["0"]))
 
       refute has_element?(view, "#step-0")
-      assert has_element?(view, "#empty-path")
-      assert has_element?(view, "#total-fuel", exactly("0 kg"))
+      assert has_element?(view, "#add-step")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       refute has_element?(view, "#fuel-by-step")
+    end
+
+    test "shows Add step only once a step can follow", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      for {params, shown} <- [
+            {%{"mass" => "28801"}, true},
+            {mission(28_801, launch: :earth), true},
+            {mission(28_801, [{:launch, nil}]), false},
+            {mission(28_801, [{nil, :earth}]), false},
+            {mission(28_801, launch: :earth, land: nil), false},
+            {mission("", launch: :earth), false},
+            {mission(0, launch: :earth), false}
+          ] do
+        change(view, params)
+        assert has_element?(view, "#add-step") == shown, "#{inspect(params)}"
+      end
+    end
+
+    test "ends the timeline's line at the last node", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "[data-role=spacecraft] > hr")
+
+      change(view, %{"mass" => "28801"})
+      assert has_element?(view, "[data-role=spacecraft] > hr")
+
+      change(view, mission(28_801, [{:launch, nil}]))
+      assert has_element?(view, "[data-role=spacecraft] > hr")
+      refute has_element?(view, "#step-0 > hr ~ hr")
+
+      change(view, mission(28_801, launch: :earth))
+      assert has_element?(view, "#step-0 > hr ~ hr")
     end
 
     test "hides the empty path message once a step is added", %{conn: conn} do
@@ -1158,6 +1214,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
     test "starts with the spacecraft and ends with Add step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
 
       assert has_element?(view, "h2", "Flight path")
       assert has_element?(view, "[data-role=spacecraft] #mission_mass")
@@ -1253,6 +1311,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "asks for the action and the planet of an incomplete step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      change(view, mission(28_801, [{nil, nil}]))
+
       assert has_element?(
                view,
                "#step-0 [data-role=step-title]",
@@ -1271,6 +1331,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "marks each step with the icon of its action", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
+      change(view, mission(28_801, [{nil, nil}]))
+
       assert has_element?(view, "#step-0 [data-role=step-icon] .hero-ellipsis-horizontal")
 
       change(view, mission(28_801, launch: :earth, land: :moon))
@@ -1283,9 +1345,12 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       refute has_element?(view, "[data-role=spacecraft-icon].bg-primary")
+      # Dashed, like the Add step node, until there is a mass
+      assert has_element?(view, "[data-role=spacecraft-icon].border-dashed")
 
       change(view, %{"mass" => "28801"})
       assert has_element?(view, "[data-role=spacecraft-icon].bg-primary")
+      refute has_element?(view, "[data-role=spacecraft-icon].border-dashed")
 
       change(view, %{"mass" => "0"})
       refute has_element?(view, "[data-role=spacecraft-icon].bg-primary")

@@ -42,8 +42,7 @@ defmodule FuelCalculatorWeb.MissionLive do
        examples: @examples,
        max_steps: Mission.max_steps()
      )
-     # The form starts with one blank step, as if "Add step" had been clicked
-     |> assign_mission(%{"steps_sort" => ["new"]})}
+     |> assign_mission(%{})}
   end
 
   @impl true
@@ -156,10 +155,12 @@ defmodule FuelCalculatorWeb.MissionLive do
     mass = valid_mass(changeset)
     path = path(changeset)
 
+    # An empty flight path needs no fuel, but the page asks for a first step instead of
+    # showing a total of 0 kg
     fuel =
       case Mission.calculate(changeset) do
-        {:ok, fuel} -> fuel
-        {:error, _changeset} -> nil
+        {:ok, fuel} when path != [] -> fuel
+        _result -> nil
       end
 
     assign(socket,
@@ -167,13 +168,26 @@ defmodule FuelCalculatorWeb.MissionLive do
       mass: mass,
       focus_step: nil,
       fuel: fuel,
-      missing: Mission.missing(changeset),
+      missing: Mission.missing(changeset) ++ first_step(changeset, path),
+      next_step: next_step?(mass, path),
       current_example_id: current_example_id(mass, path),
       step_count: length(path),
       warnings: FlightPath.warnings(path),
       fixes: FlightPath.fixes(path)
     )
   end
+
+  # A flight path with too many steps has no steps cast, and only its error to show
+  defp first_step(changeset, []),
+    do: if(Keyword.has_key?(changeset.errors, :steps), do: [], else: [:first_step])
+
+  defp first_step(_changeset, _path), do: []
+
+  # The flight path is built in order: a step can be added once the mass is valid and
+  # the last step has its action and planet
+  defp next_step?(nil, _path), do: false
+  defp next_step?(_mass, []), do: true
+  defp next_step?(_mass, path), do: path |> List.last() |> Tuple.to_list() |> Enum.all?()
 
   defp path(changeset) do
     changeset |> Ecto.Changeset.get_field(:steps) |> Enum.map(&{&1.action, &1.planet})
@@ -235,6 +249,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 warnings={@warnings}
                 fixes={@fixes}
                 focus_step={@focus_step}
+                next_step={@next_step}
               >
                 <:spacecraft>
                   <%!-- A text field, since a number field can't group the digits --%>
