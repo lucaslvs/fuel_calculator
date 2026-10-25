@@ -11,6 +11,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   alias FuelCalculator.Fuel
   alias FuelCalculator.Planet
+  alias Phoenix.HTML.Form
 
   @doc """
   Renders a card per example mission, which sends `load_example` with its id, and marks
@@ -427,7 +428,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           </div>
         </div>
         <div>
-          <.step_warning index={@step.index} warning={@warning} fix={@fix} />
+          <.step_warning step={@step} warning={@warning} fix={@fix} />
           <.step_details
             index={@step.index}
             last={@step.index == @step_count - 1}
@@ -439,7 +440,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <input
           :for={{name, value} <- @step.hidden}
           type="hidden"
-          name={Phoenix.HTML.Form.input_name(@step, name)}
+          name={Form.input_name(@step, name)}
           value={value}
         />
       </div>
@@ -487,7 +488,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp remove_focus(0, _count, _continues), do: nil
   defp remove_focus(index, _count, _continues), do: "#remove-step-#{index - 1}"
 
-  attr :index, :integer, required: true
+  attr :step, Phoenix.HTML.Form, required: true
   attr :warning, :any, default: nil
   attr :fix, :any, default: nil
 
@@ -499,23 +500,23 @@ defmodule FuelCalculatorWeb.MissionComponents do
     ~H"""
     <div aria-live="polite">
       <div
-        id={"step-warning-#{@index}"}
+        id={"step-warning-#{@step.index}"}
         hidden={is_nil(@warning)}
         class="mb-2 flex flex-wrap items-start gap-x-3 gap-y-1.5 text-sm"
       >
         <p class="flex items-start gap-2">
           <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
-          <span>{@warning && warning_message(@warning, @index)}</span>
+          <span>{@warning && warning_message(@warning, @step.index)}</span>
         </p>
         <%!-- The button stays in place, so the focus moves to the field it changes --%>
         <.button
           :if={@fix}
-          id={"fix-step-#{@index}"}
+          id={"fix-step-#{@step.index}"}
           type="button"
           phx-click={
             "fix_step"
-            |> JS.push(value: %{index: "#{@index}"})
-            |> JS.focus(to: fixed_field(@warning, @fix, @index))
+            |> JS.push(value: %{index: "#{@step.index}"})
+            |> JS.focus(to: fixed_field(@warning, @fix, @step))
           }
           class="btn btn-xs btn-warning"
         >
@@ -540,10 +541,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp fix_label({action, planet}), do: "#{action_on(action, planet)} instead"
 
-  defp fixed_field(warning, {action, _planet}, index) do
+  defp fixed_field(warning, {action, _planet}, step) do
     case warning_field(warning) do
-      :planet -> "#mission_steps_#{index}_planet"
-      :action -> "#mission_steps_#{index}_action_#{action}"
+      :planet -> "##{step[:planet].id}"
+      :action -> "##{Form.input_id(step, :action, action)}"
     end
   end
 
@@ -663,7 +664,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
       ]}>
         <label
           :for={{label, value} <- @options}
-          for={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
+          for={Form.input_id(@field.form, @field.field, value)}
           class={[
             "btn btn-sm btn-ghost gap-1 border-0 text-base-content/80",
             "has-checked:bg-base-100 has-checked:text-primary has-checked:shadow-sm",
@@ -673,7 +674,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
         >
           <input
             type="radio"
-            id={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
+            id={Form.input_id(@field.form, @field.field, value)}
             name={@field.name}
             value={value}
             checked={to_string(value) == @checked}
