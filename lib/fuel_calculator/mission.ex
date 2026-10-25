@@ -21,6 +21,12 @@ defmodule FuelCalculator.Mission do
   @type t :: %__MODULE__{mass: pos_integer() | nil, steps: [Step.t()]}
   @type fuel :: %{total: non_neg_integer(), details: [Fuel.detail()]}
 
+  @typedoc """
+  Something a mission lacks before its fuel can be calculated: a mass, blank or
+  invalid, or the fields of an incomplete step (by index).
+  """
+  @type missing :: {:mass, :blank | :invalid} | {:step, non_neg_integer(), [:action | :planet]}
+
   @primary_key false
   embedded_schema do
     field :mass, :integer
@@ -94,6 +100,42 @@ defmodule FuelCalculator.Mission do
   def calculate(%Ecto.Changeset{} = changeset) do
     with {:ok, mission} <- apply_action(changeset, :validate) do
       {:ok, fuel(mission)}
+    end
+  end
+
+  @doc """
+  Returns what a mission `changeset` lacks before its fuel can be calculated, in the
+  order of the form: the mass, then each incomplete step.
+
+  It is empty for a complete mission, and also when only the flight path as a whole
+  is invalid (too many steps).
+  """
+  @spec missing(Ecto.Changeset.t()) :: [missing()]
+  def missing(%Ecto.Changeset{} = changeset) do
+    mass_missing(changeset) ++ steps_missing(changeset)
+  end
+
+  defp mass_missing(%{errors: errors}) do
+    case Keyword.get(errors, :mass) do
+      nil ->
+        []
+
+      {_message, opts} ->
+        [{:mass, if(opts[:validation] == :required, do: :blank, else: :invalid)}]
+    end
+  end
+
+  defp steps_missing(changeset) do
+    changeset
+    |> get_embed(:steps, :changeset)
+    |> Enum.with_index()
+    |> Enum.flat_map(&step_missing/1)
+  end
+
+  defp step_missing({%{errors: errors}, index}) do
+    case for(field <- [:action, :planet], Keyword.has_key?(errors, field), do: field) do
+      [] -> []
+      fields -> [{:step, index, fields}]
     end
   end
 

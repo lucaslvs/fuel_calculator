@@ -572,15 +572,21 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp action_icon(:land), do: "hero-arrow-down-circle"
 
   @doc """
-  Renders the mission's total fuel, or a dash while the mission is invalid. Screen
-  readers announce the total whenever it changes.
+  Renders the mission's total fuel or, while the mission is invalid, what it still
+  lacks, with a button that focuses the first missing field. Screen readers announce
+  the total whenever it changes.
 
   On large screens it is a card with an aura that sticks to the top of its column, and
   breaks the total down by step; below that, the same element is a compact bar fixed to
-  the bottom of the screen, with the number of steps in place of the icon, the
-  description and the breakdown.
+  the bottom of the screen, with the number of steps (or what is missing) in place of
+  the icon, the description and the breakdown.
   """
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
+
+  attr :missing, :list,
+    default: [],
+    doc: "what the mission lacks (see `FuelCalculator.Mission.missing/1`)"
+
   attr :step_count, :integer, required: true
 
   def fuel_summary(assigns) do
@@ -596,30 +602,37 @@ defmodule FuelCalculatorWeb.MissionComponents do
         ]}
       >
         <div class="stat max-lg:px-4 max-lg:py-3">
-          <div class="stat-figure text-primary max-lg:hidden">
+          <div class={[
+            "stat-figure max-lg:hidden",
+            if(@fuel, do: "text-primary", else: "text-base-content/30")
+          ]}>
             <.icon name="hero-fire" class="size-8" />
           </div>
-          <div id="fuel-summary-steps" class="stat-figure text-sm text-base-content/70 lg:hidden">
-            {if @fuel, do: steps_label(@step_count), else: "Complete the mission"}
+          <div
+            id="fuel-summary-steps"
+            class="stat-figure max-w-40 text-end text-sm text-base-content/70 lg:hidden"
+          >
+            {if @fuel, do: steps_label(@step_count), else: missing_label(@missing)}
           </div>
           <div class="stat-title text-base-content/70">Total fuel required</div>
           <div
             id="total-fuel"
-            class="stat-value tabular-nums max-lg:text-2xl"
+            class={[
+              "stat-value tabular-nums",
+              if(@fuel,
+                do: "max-lg:text-2xl",
+                else: "text-2xl font-semibold text-base-content/70 max-lg:text-lg"
+              )
+            ]}
             aria-live="polite"
             aria-atomic="true"
           >
-            <%= if @fuel do %>
-              {format_kg(@fuel.total)}
-            <% else %>
-              <span aria-hidden="true">—</span><span class="sr-only">not available yet</span>
-            <% end %>
+            {if @fuel, do: format_kg(@fuel.total), else: "Not calculated yet"}
           </div>
-          <div class="stat-desc text-base-content/70 max-lg:hidden">
-            {if @fuel,
-              do: "Includes the fuel to carry the fuel",
-              else: "Enter a mass and complete every step"}
+          <div :if={@fuel} class="stat-desc text-base-content/70 max-lg:hidden">
+            Includes the fuel to carry the fuel
           </div>
+          <.fuel_pending :if={!@fuel} missing={@missing} />
         </div>
         <.fuel_by_step :if={@fuel && @fuel.details != []} details={@fuel.details} />
       </div>
@@ -660,6 +673,66 @@ defmodule FuelCalculatorWeb.MissionComponents do
     </div>
     """
   end
+
+  attr :missing, :list, required: true
+
+  # Only the first missing thing is spelled out, with a count of the others
+  defp fuel_pending(assigns) do
+    ~H"""
+    <div
+      id="fuel-pending"
+      class="stat-desc mt-1 flex flex-col items-start gap-0.5 text-sm whitespace-normal text-base-content/80 max-lg:hidden"
+    >
+      <%= case @missing do %>
+        <% [first | rest] -> %>
+          <p>
+            {missing_sentence(first)}<span :if={rest != []} class="text-base-content/60"> · {length(
+              rest
+            )} more</span>
+          </p>
+          <.button
+            id="fuel-pending-go"
+            type="button"
+            phx-click={JS.focus(to: missing_field(first))}
+            class="link link-primary link-hover inline-flex items-center gap-1 text-sm font-medium"
+          >
+            {missing_go(first)} <.icon name="hero-arrow-right-micro" class="size-4" />
+          </.button>
+        <% [] -> %>
+          <p>Fix the errors in the flight path</p>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp missing_sentence({:mass, :blank}), do: "Enter the spacecraft mass"
+  defp missing_sentence({:mass, :invalid}), do: "Enter a valid spacecraft mass"
+
+  defp missing_sentence({:step, index, fields}),
+    do: "Choose #{Enum.map_join(fields, " and ", &with_article/1)} for step #{index + 1}"
+
+  defp with_article(:action), do: "an action"
+  defp with_article(:planet), do: "a planet"
+
+  defp missing_go({:mass, _reason}), do: "Go to the mass"
+  defp missing_go({:step, index, _fields}), do: "Go to step #{index + 1}"
+
+  # The ids of the mission form's fields; an action is focused by its first radio
+  defp missing_field({:mass, _reason}), do: "#mission_mass"
+
+  defp missing_field({:step, index, [:action | _fields]}),
+    do: "#mission_steps_#{index}_action_#{hd(Fuel.actions())}"
+
+  defp missing_field({:step, index, [:planet]}), do: "#mission_steps_#{index}_planet"
+
+  defp missing_label([]), do: "Complete the mission"
+  defp missing_label([first]), do: short_missing(first)
+  defp missing_label([first | rest]), do: "#{short_missing(first)} · +#{length(rest)}"
+
+  defp short_missing({:mass, _reason}), do: "Spacecraft mass"
+
+  defp short_missing({:step, index, fields}),
+    do: "Step #{index + 1}: #{Enum.map_join(fields, " and ", &Atom.to_string/1)}"
 
   defp steps_label(1), do: "1 step"
   defp steps_label(count), do: "#{count} steps"

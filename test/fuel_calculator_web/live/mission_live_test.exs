@@ -31,7 +31,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#step-1")
       refute has_element?(view, "#step-0 option[selected], #step-0 input[checked]")
       refute has_element?(view, "#empty-path")
-      assert has_element?(view, "#total-fuel", "—")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
     end
 
@@ -103,7 +103,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps" => %{"0" => %{}}})
 
-      assert has_element?(view, "#total-fuel", "—")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       assert has_element?(view, "#mass-hint", "28,801 kg")
     end
 
@@ -148,12 +148,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       assert has_element?(view, "#total-fuel[aria-live=polite][aria-atomic=true]")
-      assert has_element?(view, "#total-fuel [aria-hidden=true]", "—")
-      assert has_element?(view, "#total-fuel .sr-only", "not available yet")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
 
       change(view, mission(28_801, land: :earth))
 
-      refute has_element?(view, "#total-fuel .sr-only")
+      assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
 
     test "is cleared when the mass becomes invalid", %{conn: conn} do
@@ -166,7 +165,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
         change(view, mission(mass, land: :earth))
 
         assert has_element?(view, ".input-error #mission_mass"), "mass #{inspect(mass)}"
-        assert has_element?(view, "#total-fuel", "—"), "mass #{inspect(mass)}"
+
+        assert has_element?(view, "#total-fuel", exactly("Not calculated yet")),
+               "mass #{inspect(mass)}"
       end
     end
 
@@ -179,7 +180,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, land: nil))
 
       assert has_element?(view, "#mission_steps_0_planet.select-error")
-      assert has_element?(view, "#total-fuel", "—")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
     end
 
     test "is broken down by step", %{conn: conn} do
@@ -221,13 +222,73 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "tells how many steps the summary covers", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert has_element?(view, "#fuel-summary-steps", "Complete the mission")
-
       change(view, mission(28_801, land: :earth))
-      assert has_element?(view, "#fuel-summary-steps", "1 step")
+      assert has_element?(view, "#fuel-summary-steps", exactly("1 step"))
 
       load_example(view, "apollo-11")
-      assert has_element?(view, "#fuel-summary-steps", "4 steps")
+      assert has_element?(view, "#fuel-summary-steps", exactly("4 steps"))
+    end
+  end
+
+  describe "pending total" do
+    test "tells the first thing the mission is missing and how many more", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#fuel-pending p", exactly("Enter the spacecraft mass · 1 more"))
+      assert has_element?(view, "#fuel-pending-go", "Go to the mass")
+      assert focus_target(view, "#fuel-pending-go") == "#mission_mass"
+    end
+
+    test "asks for a valid mass", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(0, land: :earth))
+
+      assert has_element?(view, "#fuel-pending p", exactly("Enter a valid spacecraft mass"))
+      assert focus_target(view, "#fuel-pending-go") == "#mission_mass"
+    end
+
+    test "asks for what an incomplete step lacks", %{conn: conn} do
+      cases = [
+        {[launch: :earth, land: nil], "Choose a planet for step 2", "Go to step 2",
+         "#mission_steps_1_planet"},
+        {[{nil, :moon}], "Choose an action for step 1", "Go to step 1",
+         "#mission_steps_0_action_launch"},
+        {[launch: :earth, land: :moon, launch: :moon, land: :earth] ++ [{nil, nil}],
+         "Choose an action and a planet for step 5", "Go to step 5",
+         "#mission_steps_4_action_launch"}
+      ]
+
+      # A new view each time: a change keeps the steps already in the page
+      for {path, sentence, go, target} <- cases do
+        {:ok, view, _html} = live(conn, ~p"/")
+        change(view, mission(28_801, path))
+
+        assert has_element?(view, "#fuel-pending p", exactly(sentence))
+        assert has_element?(view, "#fuel-pending-go", exactly(go))
+        assert focus_target(view, "#fuel-pending-go") == target
+      end
+    end
+
+    test "is replaced by the total once the mission is complete", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+
+      refute has_element?(view, "#fuel-pending")
+      assert has_element?(view, "#fuel-summary .stat-desc", "Includes the fuel to carry the fuel")
+    end
+
+    test "tells what is missing in the bar below lg", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#fuel-summary-steps", exactly("Spacecraft mass · +1"))
+
+      change(view, mission(28_801, launch: :earth, land: nil))
+      assert has_element?(view, "#fuel-summary-steps", exactly("Step 2: planet"))
+
+      change(view, mission(28_801, [launch: :earth, land: :moon, launch: :moon] ++ [{nil, nil}]))
+      assert has_element?(view, "#fuel-summary-steps", exactly("Step 4: action and planet"))
     end
   end
 
@@ -681,7 +742,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
           ] do
         render_hook(view, "validate", %{"mission" => params})
 
-        assert has_element?(view, "#total-fuel", "—"), "#{inspect(params)} was accepted"
+        assert has_element?(view, "#total-fuel", exactly("Not calculated yet")),
+               "#{inspect(params)} was accepted"
       end
 
       change(view, mission(28_801, land: :earth))
@@ -985,7 +1047,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, List.duplicate({:land, :moon}, 16)))
 
       assert has_element?(view, "#steps-errors", "should have at most 15 item(s)")
-      assert has_element?(view, "#total-fuel", "—")
+      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
+      assert has_element?(view, "#fuel-pending p", exactly("Fix the errors in the flight path"))
+      refute has_element?(view, "#fuel-pending-go")
 
       change(view, mission(28_801, land: :earth))
 

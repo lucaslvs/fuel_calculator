@@ -194,6 +194,55 @@ defmodule FuelCalculator.MissionTest do
     end
   end
 
+  describe "missing/1" do
+    test "is empty for a complete mission" do
+      assert Mission.missing(cast(%{"mass" => "28801", "steps" => @apollo_11})) == []
+    end
+
+    test "is empty for a mass and an empty path" do
+      assert Mission.missing(cast(%{"mass" => "28801"})) == []
+    end
+
+    test "lists a blank mass" do
+      for mass <- [nil, "", " "] do
+        assert Mission.missing(cast(%{"mass" => mass, "steps" => @apollo_11})) ==
+                 [{:mass, :blank}],
+               "mass #{inspect(mass)}"
+      end
+    end
+
+    test "lists an invalid mass" do
+      for mass <- ["0", "-1", "abc", "1.5", "1000000000001"] do
+        assert Mission.missing(cast(%{"mass" => mass, "steps" => @apollo_11})) ==
+                 [{:mass, :invalid}],
+               "mass #{inspect(mass)}"
+      end
+    end
+
+    test "lists the fields each incomplete step lacks, after the mass" do
+      steps = %{
+        "0" => %{"action" => "launch", "planet" => "earth"},
+        "1" => %{},
+        "2" => %{"action" => "land"},
+        "3" => %{"planet" => "moon"}
+      }
+
+      assert Mission.missing(cast(%{"steps" => steps})) == [
+               {:mass, :blank},
+               {:step, 1, [:action, :planet]},
+               {:step, 2, [:planet]},
+               {:step, 3, [:action]}
+             ]
+    end
+
+    test "lists an unknown action or planet as lacking" do
+      steps = %{"0" => %{"action" => "orbit", "planet" => "pluto"}}
+
+      assert Mission.missing(cast(%{"mass" => "28801", "steps" => steps})) ==
+               [{:step, 0, [:action, :planet]}]
+    end
+  end
+
   describe "fuel/1" do
     test "calculates the Apollo 11 mission" do
       assert %{total: 51_898, details: details} =

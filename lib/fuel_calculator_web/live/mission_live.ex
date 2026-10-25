@@ -135,6 +135,7 @@ defmodule FuelCalculatorWeb.MissionLive do
       mass: mass,
       focus_step: nil,
       fuel: fuel,
+      missing: Mission.missing(changeset),
       current_example_id: current_example_id(mass, path),
       step_count: length(path),
       warnings: FlightPath.warnings(path)
@@ -227,7 +228,7 @@ defmodule FuelCalculatorWeb.MissionLive do
           </div>
         </div>
 
-        <.fuel_summary fuel={@fuel} step_count={@step_count} />
+        <.fuel_summary fuel={@fuel} missing={@missing} step_count={@step_count} />
       </div>
     </Layouts.app>
     """
