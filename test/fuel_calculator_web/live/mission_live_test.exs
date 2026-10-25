@@ -144,24 +144,27 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     # The summary card is narrow and the total doesn't wrap, so long totals are smaller
     test "steps down in size as it gets longer", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
+      launches = &List.duplicate({:launch, :earth}, &1)
 
-      change(view, mission(28_801, launch: :earth))
-      assert has_element?(view, "#total-fuel", exactly("19,772 kg"))
-      refute has_element?(view, "#total-fuel.text-2xl")
-      refute has_element?(view, "#total-fuel.text-lg")
+      # The totals on both sides of each step, 13/14, 17/18 and 20/21 characters long
+      cases = [
+        {28_801, launches.(1), "19,772 kg", ~w(max-lg:text-2xl)},
+        {142_782_249, launches.(1), "99,999,998 kg", ~w(max-lg:text-2xl)},
+        {142_782_250, launches.(1), "100,000,000 kg", ~w(text-2xl max-lg:text-xl)},
+        {142_780_911_627, launches.(1), "99,999,999,999 kg", ~w(text-2xl max-lg:text-xl)},
+        {142_780_911_628, launches.(1), "100,000,000,005 kg", ~w(text-xl max-lg:text-lg)},
+        {756_762_554_006, launches.(5), "9,999,999,999,980 kg", ~w(text-xl max-lg:text-lg)},
+        {756_762_554_007, launches.(5), "10,000,000,000,003 kg", ~w(text-lg max-lg:text-sm)},
+        # The longest total there can be
+        {1_000_000_000_000, launches.(15), "2,870,877,069,360,685 kg", ~w(text-lg max-lg:text-sm)}
+      ]
 
-      change(view, mission(1_000_000_000, launch: :earth))
-      assert has_element?(view, "#total-fuel", exactly("700,372,676 kg"))
-      assert has_element?(view, "#total-fuel.text-2xl")
+      for {mass, path, total, size} <- cases do
+        change(view, mission(mass, path))
 
-      change(view, mission(1_000_000_000_000, launch: :earth, land: :earth))
-      assert has_element?(view, "#total-fuel", exactly("1,513,973,496,138 kg"))
-      assert has_element?(view, "#total-fuel.text-xl")
-
-      # The longest total there can be
-      change(view, mission(1_000_000_000_000, List.duplicate({:launch, :earth}, 15)))
-      assert has_element?(view, "#total-fuel", exactly("2,870,877,069,360,685 kg"))
-      assert has_element?(view, "#total-fuel.text-lg")
+        assert has_element?(view, "#total-fuel", exactly(total))
+        assert text_size(view, "#total-fuel") == size
+      end
     end
 
     test "is announced to screen readers when it changes", %{conn: conn} do
@@ -1388,6 +1391,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
   # has_element?/3 matches text anywhere in the element, so "1 kg" would match "31 kg"
   defp exactly(text), do: ~r/^\s*#{Regex.escape(text)}\s*$/
+
+  # The font size classes of an element, at every width
+  defp text_size(view, selector) do
+    view
+    |> query(selector)
+    |> LazyHTML.attribute("class")
+    |> hd()
+    |> String.split()
+    |> Enum.filter(&(&1 =~ ~r/^(max-lg:)?text-(sm|lg|xl|2xl)$/))
+  end
 
   defp query(view, selector) do
     view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query(selector)
