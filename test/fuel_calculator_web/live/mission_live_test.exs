@@ -2,6 +2,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   use FuelCalculatorWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import FuelCalculatorWeb.MissionComponents, only: [format_number: 1]
 
   alias FuelCalculator.Fuel
 
@@ -50,17 +51,17 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "[data-phx-theme]")
     end
 
-    test "limits the mass input to the largest mass", %{conn: conn} do
+    test "groups the mass digits as they are typed", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert has_element?(view, "#mission_mass[min='1'][max='1000000000000']")
+      assert has_element?(view, "#mission_mass[type=text][phx-hook]")
     end
 
     test "shows the mass unit and an example mass", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       assert has_element?(view, ".input #mission_mass ~ .label", "kg")
-      assert has_element?(view, "#mission_mass[placeholder='e.g. 28801'][inputmode=numeric]")
+      assert has_element?(view, "#mission_mass[placeholder='e.g. 28,801'][inputmode=numeric]")
     end
 
     test "puts the mass unit in the input's name in parentheses", %{conn: conn} do
@@ -84,40 +85,37 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
-  describe "mass hint" do
-    for {mass, hint} <- [{28_801, "28,801 kg"}, {1_000_000_000_000, "1,000,000,000,000 kg"}] do
-      test "formats the valid mass #{mass}", %{conn: conn} do
+  describe "mass field" do
+    for {mass, shown} <- [
+          {"28801", "28,801"},
+          {"28,801", "28,801"},
+          {"1000000000000", "1,000,000,000,000"}
+        ] do
+      test "shows #{mass} with its digits grouped", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
         change(view, mission(unquote(mass), land: :earth))
 
-        assert has_element?(view, "#mass-hint", unquote(hint))
-        assert has_element?(view, "#mission_mass[aria-describedby=mass-hint]")
+        assert has_element?(view, "#mission_mass[value='#{unquote(shown)}']")
       end
     end
 
-    test "is shown while the flight path is still incomplete", %{conn: conn} do
+    test "takes the mass with or without commas", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps" => %{"0" => %{}}})
+      change(view, mission("28,801", land: :earth))
 
-      assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
-      assert has_element?(view, "#mass-hint", "28,801 kg")
+      assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
 
-    test "is hidden without a valid mass", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
+    for mass <- ["12a", "1.5", "-1"] do
+      test "shows the invalid mass #{mass} as it was typed", %{conn: conn} do
+        {:ok, view, _html} = live(conn, ~p"/")
 
-      refute has_element?(view, "#mass-hint")
+        change(view, mission(unquote(mass), land: :earth))
 
-      for mass <- ["", "0", "-1", "abc", "1000000000001"] do
-        change(view, mission(28_801, land: :earth))
-        change(view, mission(mass, land: :earth))
-
-        refute has_element?(view, "#mass-hint"), "mass #{inspect(mass)}"
-
-        refute has_element?(view, "#mission_mass[aria-describedby~=mass-hint]"),
-               "mass #{inspect(mass)}"
+        assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
+        assert has_element?(view, ".input-error #mission_mass")
       end
     end
   end
@@ -345,7 +343,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
         load_example(view, unquote(id))
 
-        assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
+        assert has_element?(view, "#mission_mass[value='#{format_number(unquote(mass))}']")
 
         for {{action, planet}, index} <- Enum.with_index(unquote(path)) do
           assert has_element?(view, "#step-#{index} input[value='#{action}'][checked]")
@@ -455,7 +453,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, land: :earth))
       render_hook(view, "load_example", %{"id" => "nope"})
 
-      assert has_element?(view, "#mission_mass[value='28801']")
+      assert has_element?(view, "#mission_mass[value='28,801']")
       refute has_element?(view, "#step-1")
       assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
@@ -1063,7 +1061,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, %{mission(28_801, land: :earth) | "steps_sort" => ["0", "new"]})
 
-      assert has_element?(view, "#mission_mass[value='28801']")
+      assert has_element?(view, "#mission_mass[value='28,801']")
       assert has_element?(view, "#mission_steps_0_action input[value='land'][checked]")
       assert has_element?(view, "#mission_steps_0_planet option[value='earth'][selected]")
       assert has_element?(view, "#step-1")

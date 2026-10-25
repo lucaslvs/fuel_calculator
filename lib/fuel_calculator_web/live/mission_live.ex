@@ -39,7 +39,6 @@ defmodule FuelCalculatorWeb.MissionLive do
      socket
      |> assign(
        examples: @examples,
-       max_mass: Mission.max_mass(),
        max_steps: Mission.max_steps()
      )
      # The form starts with one blank step, as if "Add step" had been clicked
@@ -102,10 +101,12 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   # Form inputs render their params back, which only works for the strings the form
-  # sends, so a crafted event's other values are dropped.
+  # sends, so a crafted event's other values are dropped. The mass field groups its
+  # digits with commas, which are dropped before the mass is cast.
   defp form_params(params) do
     params
     |> strings_only(~w(steps steps_sort steps_drop))
+    |> Map.replace_lazy("mass", &String.replace(&1, ",", ""))
     |> Map.replace_lazy("steps", &form_steps/1)
   end
 
@@ -185,6 +186,12 @@ defmodule FuelCalculatorWeb.MissionLive do
     end)
   end
 
+  # The mass field shows its digits grouped, as its hook does while typing. A value that
+  # isn't cast to an integer is shown as it was typed, and a mass far beyond the largest
+  # as it is, since it is invalid anyway.
+  defp grouped_mass(mass) when mass in 0..999_999_999_999_999//1, do: format_number(mass)
+  defp grouped_mass(mass), do: mass
+
   defp valid_mass(changeset) do
     if Keyword.has_key?(changeset.errors, :mass),
       do: nil,
@@ -228,29 +235,40 @@ defmodule FuelCalculatorWeb.MissionLive do
                 focus_step={@focus_step}
               >
                 <:spacecraft>
+                  <%!-- A text field, since a number field can't group the digits --%>
                   <.input
                     field={@form[:mass]}
-                    type="number"
+                    value={grouped_mass(@form[:mass].value)}
+                    type="text"
                     label="Spacecraft mass"
                     label_class="mb-1 block text-sm font-semibold"
                     class="input w-full tabular-nums"
-                    min="1"
-                    max={@max_mass}
-                    step="1"
                     inputmode="numeric"
-                    placeholder="e.g. 28801"
+                    autocomplete="off"
+                    placeholder="e.g. 28,801"
                     phx-debounce="300"
-                    aria-describedby={@mass && "mass-hint"}
+                    phx-hook=".GroupDigits"
                   >
                     <:suffix>kg</:suffix>
                   </.input>
-                  <p
-                    :if={@mass}
-                    id="mass-hint"
-                    class="mt-1 text-sm text-base-content/80 tabular-nums"
-                  >
-                    {format_kg(@mass)}
-                  </p>
+                  <script :type={Phoenix.LiveView.ColocatedHook} name=".GroupDigits">
+                    // Keeps only the digits, grouped with commas, and the caret after the
+                    // same digit it followed
+                    export default {
+                      mounted() {
+                        this.el.addEventListener("input", () => {
+                          const el = this.el
+                          const before = el.value.slice(0, el.selectionStart).replace(/\D/g, "").length
+                          el.value = el.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                          let caret = 0
+                          for (let seen = 0; caret < el.value.length && seen < before; caret++) {
+                            if (/\d/.test(el.value[caret])) seen++
+                          }
+                          el.setSelectionRange(caret, caret)
+                        })
+                      }
+                    }
+                  </script>
                 </:spacecraft>
               </.flight_path>
             </.form>

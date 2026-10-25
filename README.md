@@ -73,7 +73,8 @@ and fails when a Hex dependency is retired or has a security advisory
 - A single LiveView at `/` renders the calculator and needs no parameters.
 - Steps are added, removed and reordered through Ecto's `sort_param` and
   `drop_param` with `<.inputs_for>`: the form params are the only state, and
-  there are no custom JavaScript hooks.
+  the only custom JavaScript is a colocated hook that groups the mass digits as
+  they are typed.
 - The flight path is a regular assign, not a stream: it is a short list, and the
   total is recalculated over all of it on every change.
 - Change and submit share one event, so pressing Enter recalculates and shows
