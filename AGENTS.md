@@ -1,7 +1,7 @@
 # FuelCalculator
 
-Interplanetary fuel calculator built with Phoenix LiveView. The full specification
-is in `docs/CHALLENGE.md`; read it before planning or implementing features.
+Interplanetary fuel calculator built with Phoenix LiveView. The README describes
+what the app does and why it is built the way it is.
 
 ## Stack
 

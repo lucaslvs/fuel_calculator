@@ -10,7 +10,30 @@ flight paths (launches and landings on Earth, Moon and Mars).
 Live demo: <https://fuel-calculator.gigalixirapp.com> (hosted on Gigalixir's free
 tier, deployed automatically from `main` after CI passes).
 
-See [`docs/CHALLENGE.md`](docs/CHALLENGE.md) for the full challenge description.
+## Using the app
+
+- **Example missions:** the three missions from the challenge are cards at the
+  top. One click loads their mass and flight path, and the total matches the
+  challenge (Apollo 11: 51,898 kg). Editing any value unmarks the card.
+- **Guided flight path:** the page opens with only the spacecraft mass. Once the
+  mass is valid, *Add step* offers *Launch* or *Land*; the new step starts with
+  that action and asks for a planet, and the next step can be added once it has
+  one. Any step can be changed or removed, up to 15 steps.
+- **Real-time total:** the total fuel is recalculated on every change (the mass
+  field waits for a pause in typing). While the mission is incomplete, the
+  summary says what to fill in next instead of a total.
+- **Fuel by step:** the summary breaks the total down by step (on small screens,
+  in a bar at the bottom). Each step also explains its fuel: the mass it carries
+  (the spacecraft plus the fuel for the later steps), the formula, and the
+  iterations, as the challenge writes them (9,278 + 2,960 + 915 + 254 + 40 =
+  13,447 kg).
+- **Warnings:** a step that can't follow the previous one (two landings or two
+  launches in a row, or a launch from a planet other than the last landing) is
+  marked on the flight path and in the summary, with a one-click fix. The fuel
+  is still calculated for the steps as entered.
+- **Validation:** the mass is a whole number from 1 to 1,000,000,000,000 kg (its
+  digits are grouped as it is typed), and every step needs an action and a
+  planet. Errors show next to their field.
 
 ## Requirements
 
@@ -41,6 +64,22 @@ The same checks run on every push via GitHub Actions, and the build fails below
 the coverage badge, lints itself with [actionlint](https://github.com/rhysd/actionlint)
 and fails when a Hex dependency is retired or has a security advisory
 (`mix hex.audit`).
+
+## Project structure
+
+| Module | Responsibility |
+| ------ | -------------- |
+| [`FuelCalculator.Planet`](lib/fuel_calculator/planet.ex) | The supported planets and their gravity |
+| [`FuelCalculator.Fuel`](lib/fuel_calculator/fuel.ex) | The launch and landing formulas, the fuel for the fuel, and each step's iterations |
+| [`FuelCalculator.FlightPath`](lib/fuel_calculator/flight_path.ex) | Warnings for steps that can't follow the previous one, and their fixes |
+| [`FuelCalculator.Mission`](lib/fuel_calculator/mission.ex), [`Mission.Step`](lib/fuel_calculator/mission/step.ex) | Validate the form input and calculate the mission's fuel |
+| [`FuelCalculatorWeb.MissionLive`](lib/fuel_calculator_web/live/mission_live.ex) | The page at `/`: form events, example missions, recalculation on every change |
+| [`FuelCalculatorWeb.MissionComponents`](lib/fuel_calculator_web/components/mission_components.ex) | Example cards, flight path timeline, step rows and fuel summary |
+| [`FuelCalculatorWeb.ErrorHTML`](lib/fuel_calculator_web/controllers/error_html.ex) | 404 and 500 pages in the app's look |
+
+The calculation and the validation (`lib/fuel_calculator/`) don't depend on the
+web layer. `CoreComponents` and `Layouts` are Phoenix's generated ones, trimmed
+to what the app uses.
 
 ## Design decisions
 
@@ -103,6 +142,20 @@ and fails when a Hex dependency is retired or has a security advisory
 
 - The three scenarios from the challenge are tested in the domain, the
   validation and the LiveView.
+- Tests mirror `lib/` in `test/`:
+  - `fuel_test.exs`: the formulas, the iterations and the breakdown by step,
+    plus a regression test for the float rounding above;
+  - `fuel_properties_test.exs`: StreamData properties: the total and each step
+    match an exact model built from the challenge's decimal figures, and more
+    mass never needs less fuel;
+  - `flight_path_test.exs`: warnings and fixes, with properties;
+  - `mission_test.exs` and `mission/step_test.exs`: validation, including the
+    mass bounds and the step limit;
+  - `live/mission_live_test.exs`: the page through `Phoenix.LiveViewTest`:
+    examples, adding and removing steps, the total, the explanations, warnings
+    and fixes, errors, focus and crafted events;
+  - the other files under `fuel_calculator_web/`: the security policy, request
+    size limits, static files and error pages.
 - CI compiles with warnings as errors, runs Credo in strict mode, Dialyzer, the
   tests and `mix hex.audit`, and fails below 90% coverage.
 
