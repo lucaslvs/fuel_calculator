@@ -26,7 +26,7 @@ defmodule FuelCalculatorWeb.Router do
   #   pipe_through :api
   # end
 
-  # The theme script in the root layout is inline, so it runs with the nonce
+  # Inline scripts in the root layout must carry the nonce to run
   defp put_content_security_policy(conn, _opts) do
     nonce = 18 |> :crypto.strong_rand_bytes() |> Base.encode64()
 

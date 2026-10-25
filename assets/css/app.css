@@ -19,11 +19,12 @@
 }
 
 /* daisyUI theme plugin.
-  The IBM Carbon palette (v11 tokens, Gray 100 and White themes), with the hex values of
-  @carbon/colors. Changing a color means measuring the contrast again (WCAG AA). */
+  The IBM Carbon palette (v11 tokens, Gray 100 theme), with the hex values of @carbon/colors.
+  The app has only this dark theme. Changing a color means measuring the contrast again
+  (WCAG AA). */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "dark";
-  default: false;
+  default: true;
   prefersdark: true;
   color-scheme: "dark";
   --color-base-100: #161616;
@@ -47,43 +48,6 @@
   --color-warning-content: #161616;
   --color-error: #fa4d56;
   --color-error-content: #161616;
-  --radius-selector: 0.5rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
-}
-
-@plugin "daisyui/packages/bundle/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: #ffffff;
-  --color-base-200: #f4f4f4;
-  --color-base-300: #e0e0e0;
-  /* Dark enough for .label (60% opacity) on base-100 to meet WCAG AA: don't lighten it */
-  --color-base-content: #161616;
-  /* Primary and error are dark enough for text on and around them to meet WCAG AA */
-  --color-primary: #0f62fe;
-  --color-primary-content: #ffffff;
-  --color-secondary: #8a3ffc;
-  --color-secondary-content: #ffffff;
-  --color-accent: #0072c3;
-  --color-accent-content: #ffffff;
-  --color-neutral: #393939;
-  --color-neutral-content: #f4f4f4;
-  --color-info: #0043ce;
-  --color-info-content: #ffffff;
-  --color-success: #198038;
-  --color-success-content: #ffffff;
-  --color-warning: #f1c21b;
-  --color-warning-content: #161616;
-  --color-error: #da1e28;
-  --color-error-content: #ffffff;
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 1rem;
@@ -150,16 +114,12 @@
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
-/* Use the data attribute for dark mode  */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
 
-/* Background. The theme script always resolves "system" to light or dark in data-theme.
-   daisyUI paints the background color on :root, so the body only adds images on top.
+/* Background. daisyUI paints the background color on :root, so the body only adds images on top.
    background-attachment: fixed may scroll on iOS. */
 body {
   /* The background only paints the body box, which is shorter than the viewport on short pages */
@@ -168,26 +128,16 @@ body {
 
 /* Deep sky. The SVGs in priv/static/images come from a seeded script (not in the repo), with
    star colors from Mitchell Charity's table (vendian.org/mncharity/dir3/starcolor): replace
-   them as files, don't edit them by hand. The two dark tiles have coprime sizes, so the
-   pattern doesn't visibly repeat. The first layer dims the stars behind the content column,
-   so no star sits behind text. */
-[data-theme="dark"] body {
+   them as files, don't edit them by hand. The two tiles have coprime sizes, so the pattern
+   doesn't visibly repeat. The first layer dims the stars behind the content column, so no
+   star sits behind text. */
+body {
   background-image:
     radial-gradient(ellipse 40rem 85% at 50% 40%, color-mix(in oklab, var(--color-base-100) 88%, transparent) 0 60%, transparent 100%),
     url("/images/stars-near.svg"),
     url("/images/stars-far.svg");
   background-size: 100% 100%, 1400px 1000px, 997px 811px;
   background-repeat: no-repeat, repeat, repeat;
-  background-attachment: fixed;
-}
-
-/* A star chart: dots in ink */
-[data-theme="light"] body {
-  background-image:
-    radial-gradient(ellipse 40rem 85% at 50% 40%, color-mix(in oklab, var(--color-base-100) 88%, transparent) 0 60%, transparent 100%),
-    url("/images/stars-chart.svg");
-  background-size: 100% 100%, 1400px 1000px;
-  background-repeat: no-repeat, repeat;
   background-attachment: fixed;
 }
 
@@ -215,12 +165,4 @@ body::after {
   background-color: var(--color-primary);
   mask-image: url("/images/nebula-b.svg");
   opacity: 0.4;
-}
-
-[data-theme="light"] body::before {
-  opacity: 0.18;
-}
-
-[data-theme="light"] body::after {
-  opacity: 0.13;
 }

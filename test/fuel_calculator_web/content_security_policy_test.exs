@@ -31,8 +31,7 @@ defmodule FuelCalculatorWeb.ContentSecurityPolicyTest do
       |> LazyHTML.from_document()
       |> LazyHTML.query("script:not([src])")
 
-    refute Enum.empty?(inline_scripts)
-    assert LazyHTML.attribute(inline_scripts, "nonce") |> Enum.uniq() == [nonce]
+    assert inline_scripts |> LazyHTML.attribute("nonce") |> Enum.all?(&(&1 == nonce))
   end
 
   test "each request gets a new nonce", %{conn: conn} do

@@ -22,7 +22,7 @@ defmodule FuelCalculatorWeb.StaticAssetsTest do
       |> Enum.uniq()
 
     assert Enum.count(paths, &String.starts_with?(&1, "/fonts/")) == 4
-    assert Enum.count(paths, &String.starts_with?(&1, "/images/")) == 5
+    assert Enum.count(paths, &String.starts_with?(&1, "/images/")) == 4
 
     for path <- paths do
       conn = get(conn, path)

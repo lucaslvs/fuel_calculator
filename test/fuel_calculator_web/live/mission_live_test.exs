@@ -44,12 +44,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert Enum.count(headings) == 1
     end
 
-    test "names the theme buttons", %{conn: conn} do
+    test "has no theme switcher, since there is only the dark theme", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      for {theme, name} <- [system: "System theme", light: "Light theme", dark: "Dark theme"] do
-        assert has_element?(view, "button[data-phx-theme=#{theme}][aria-label='#{name}']")
-      end
+      refute has_element?(view, "[data-phx-theme]")
     end
 
     test "limits the mass input to the largest mass", %{conn: conn} do
