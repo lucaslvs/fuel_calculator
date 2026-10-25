@@ -62,11 +62,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
             <.example_route path={example.path} class="max-sm:hidden" />
             <span
               data-role="size"
-              class="font-mono text-xs tabular-nums text-base-content/80 max-sm:hidden"
+              class="text-xs tabular-nums text-base-content/80 max-sm:hidden"
             >
               {example_size(example)}
             </span>
-            <span class="font-mono text-xs tabular-nums text-base-content/80 sm:hidden">
+            <span class="text-xs tabular-nums text-base-content/80 sm:hidden">
               {length(example.path)} steps
             </span>
           </span>
@@ -78,7 +78,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
         class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/80 sm:hidden"
       >
         <.example_route path={@current.path} />
-        <span class="font-mono tabular-nums">· {example_size(@current)}</span>
+        <span class="tabular-nums">· {example_size(@current)}</span>
       </p>
     </div>
     """
@@ -145,7 +145,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <span
           :if={@steps_left in 1..3}
           id="steps-left"
-          class="font-mono text-xs text-base-content/80 tabular-nums"
+          class="text-xs text-base-content/80 tabular-nums"
         >
           {@steps_left} more {if(@steps_left == 1, do: "step", else: "steps")} allowed
         </span>
@@ -527,10 +527,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
               <% [] -> %>
                 No fuel needed: the formula gives zero or less for this mass.
               <% [fuel] -> %>
-                <strong class="font-mono">{format_kg(fuel)}</strong>
+                <strong class="font-semibold">{format_kg(fuel)}</strong>
               <% iterations -> %>
                 {Enum.map_join(iterations, " + ", &format_number/1)} =
-                <strong class="font-mono">{format_kg(@detail.fuel)}</strong>
+                <strong class="font-semibold">{format_kg(@detail.fuel)}</strong>
             <% end %>
           </p>
         <% else %>
@@ -740,10 +740,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
           <div
             id="total-fuel"
             class={[
-              "stat-value font-mono tabular-nums",
+              "stat-value font-normal tabular-nums",
               if(@fuel,
                 do: "max-lg:text-2xl",
-                else: "text-2xl font-semibold text-base-content/70 max-lg:text-lg"
+                else: "text-2xl text-base-content/70 max-lg:text-lg"
               )
             ]}
             aria-live="polite"
@@ -804,7 +804,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 class="-mt-0.5 me-1 size-3.5 text-warning"
               />{index} · {action_on(detail.action, detail.planet)}
             </span>
-            <span data-role="fuel" class="font-mono font-semibold tabular-nums">
+            <span data-role="fuel" class="font-semibold tabular-nums">
               {format_kg(detail.fuel)}
             </span>
           </div>

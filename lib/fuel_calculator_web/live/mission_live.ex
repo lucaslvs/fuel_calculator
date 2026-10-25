@@ -199,7 +199,7 @@ defmodule FuelCalculatorWeb.MissionLive do
       <div class="max-lg:pb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
         <div class="space-y-4">
           <header class="pb-4">
-            <h1 class="text-2xl font-bold tracking-tight sm:text-4xl">
+            <h1 class="text-2xl tracking-tight sm:text-4xl">
               Interplanetary <span class="text-primary">fuel</span> calculator
             </h1>
             <p class="mt-2 max-w-prose text-base text-base-content/80">
@@ -233,7 +233,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                     type="number"
                     label="Spacecraft mass"
                     label_class="mb-1 block text-sm font-semibold"
-                    class="input w-full font-mono tabular-nums"
+                    class="input w-full tabular-nums"
                     min="1"
                     max={@max_mass}
                     step="1"
@@ -247,7 +247,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                   <p
                     :if={@mass}
                     id="mass-hint"
-                    class="mt-1 font-mono text-sm text-base-content/80 tabular-nums"
+                    class="mt-1 text-sm text-base-content/80 tabular-nums"
                   >
                     {format_kg(@mass)}
                   </p>

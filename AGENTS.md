@@ -39,9 +39,11 @@ while `mix phx.server` is running.
 - The flight path is a small, user-edited list whose total fuel is recomputed on
   every change: keep it in a regular assign, not a LiveView stream
   (overrides the streams guideline below)
-- Text is IBM Plex Sans; figures and kg values take `font-mono` (IBM Plex Mono)
-  with `tabular-nums`. The fonts are self-hosted in `priv/static/fonts` (latin
-  subset, declared in `app.css`): the production CSP blocks font CDNs
+- The UI follows IBM Carbon: one dark theme with Carbon's palette, and IBM Plex
+  Sans for text and figures alike (figures take `tabular-nums`, no monospace) in
+  Carbon's weights only: 300, 400 and 600, never bold. The font is self-hosted in
+  `priv/static/fonts` (latin subset, declared in `app.css`): the production CSP
+  blocks font CDNs
 - Build the UI with daisyUI classes and themes plus the components in
   `core_components.ex`; use plain Tailwind utilities only for layout and
   fine-tuning (overrides the "no daisyUI" guideline below)
