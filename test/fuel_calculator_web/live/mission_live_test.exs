@@ -63,6 +63,15 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_mass[placeholder='e.g. 28,801'][inputmode=numeric]")
     end
 
+    test "takes as many characters as the largest mass grouped", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(
+               view,
+               "#mission_mass[maxlength='#{String.length("1,000,000,000,000")}']"
+             )
+    end
+
     test "puts the mass unit in the input's name in parentheses", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 

@@ -253,7 +253,9 @@ defmodule FuelCalculatorWeb.MissionLive do
                 next_step={@next_step}
               >
                 <:spacecraft>
-                  <%!-- A text field, since a number field can't group the digits --%>
+                  <%!-- A text field, since a number field can't group the digits. The
+                       largest mass, 1,000,000,000,000 kg, has 17 characters; the limit also
+                       spares the hook's grouping, quadratic in the digits, a huge paste. --%>
                   <.input
                     field={@form[:mass]}
                     value={grouped_mass(@form[:mass].value)}
@@ -262,6 +264,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                     label_class="mb-1 block text-sm font-semibold"
                     class="input w-full tabular-nums"
                     inputmode="numeric"
+                    maxlength="17"
                     autocomplete="off"
                     placeholder="e.g. 28,801"
                     phx-debounce="300"
