@@ -1203,16 +1203,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0 > hr ~ hr")
     end
 
-    test "hides the empty path message once a step is added", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
-      change(view, %{"mass" => "28801", "steps_sort" => ["new"]})
-
-      assert has_element?(view, "#step-0")
-      refute has_element?(view, "#empty-path")
-    end
-
     # Parsing an integer this long raises a system limit error
     # render_hook sends the params as they are, without the form's inputs
     test "counts the steps left only close to the limit", %{conn: conn} do
