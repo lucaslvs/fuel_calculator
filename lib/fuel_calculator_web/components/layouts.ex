@@ -12,11 +12,8 @@ defmodule FuelCalculatorWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
-  Renders your app layout.
-
-  This function is typically invoked from every template,
-  and it often contains your application menu, sidebar,
-  or similar.
+  Renders the page around the content: a header with the app's name, which links
+  home, the content's column and the flash messages.
 
   ## Examples
 
@@ -26,10 +23,6 @@ defmodule FuelCalculatorWeb.Layouts do
 
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
-
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
   attr :class, :string, default: "max-w-2xl", doc: "the max width of the content"
 

@@ -11,20 +11,11 @@ defmodule FuelCalculatorWeb.Router do
     plug :put_content_security_policy
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", FuelCalculatorWeb do
     pipe_through :browser
 
     live "/", MissionLive
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", FuelCalculatorWeb do
-  #   pipe_through :api
-  # end
 
   if Application.compile_env(:fuel_calculator, :strict_csp, true) do
     # The pages have no inline scripts, so scripts only come from the app's origin

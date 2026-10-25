@@ -1,16 +1,16 @@
 defmodule FuelCalculatorWeb do
   @moduledoc """
-  The entrypoint for defining your web interface, such
-  as controllers, components, channels, and so on.
+  The entrypoint for defining your web interface: the router, the
+  LiveView and the components.
 
   This can be used in your application as:
 
-      use FuelCalculatorWeb, :controller
+      use FuelCalculatorWeb, :live_view
       use FuelCalculatorWeb, :html
 
-  The definitions below will be executed for every controller,
-  component, etc, so keep them short and clean, focused
-  on imports, uses and aliases.
+  The definitions below will be executed for every LiveView and
+  component, so keep them short and clean, focused on imports,
+  uses and aliases.
 
   Do NOT define functions inside the quoted expressions
   below. Instead, define additional modules and import
@@ -30,35 +30,9 @@ defmodule FuelCalculatorWeb do
     end
   end
 
-  def channel do
-    quote do
-      use Phoenix.Channel
-    end
-  end
-
-  def controller do
-    quote do
-      use Phoenix.Controller, formats: [:html, :json]
-
-      use Gettext, backend: FuelCalculatorWeb.Gettext
-
-      import Plug.Conn
-
-      unquote(verified_routes())
-    end
-  end
-
   def live_view do
     quote do
       use Phoenix.LiveView
-
-      unquote(html_helpers())
-    end
-  end
-
-  def live_component do
-    quote do
-      use Phoenix.LiveComponent
 
       unquote(html_helpers())
     end
@@ -106,7 +80,7 @@ defmodule FuelCalculatorWeb do
   end
 
   @doc """
-  When used, dispatch to the appropriate controller/live_view/etc.
+  When used, dispatch to the appropriate router/live_view/html.
   """
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])

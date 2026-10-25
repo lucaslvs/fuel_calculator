@@ -7,9 +7,6 @@
 # General application configuration
 import Config
 
-config :fuel_calculator,
-  generators: [timestamp_type: :utc_datetime]
-
 # Configure the endpoint
 config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   url: [host: "localhost"],

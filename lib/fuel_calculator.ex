@@ -1,9 +1,10 @@
 defmodule FuelCalculator do
   @moduledoc """
-  FuelCalculator keeps the contexts that define your domain
-  and business logic.
+  The domain of the fuel calculator, in pure functions with no database:
 
-  Contexts are also responsible for managing your data, regardless
-  if it comes from the database, an external API or others.
+    * `FuelCalculator.Planet` - the planets and their gravity
+    * `FuelCalculator.Fuel` - the fuel of each step and of a flight path
+    * `FuelCalculator.FlightPath` - steps that can't follow the previous one
+    * `FuelCalculator.Mission` - a mass and flight path validated from user input
   """
 end
