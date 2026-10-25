@@ -975,6 +975,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
             %{"mass" => "28801", "steps_sort" => "x", "steps" => "x"},
             %{"mass" => "28801", "steps_drop" => "x", "steps" => %{"0" => ["x"]}},
             %{"mass" => %{"x" => "1"}, "steps" => [%{"action" => ["x"]}]},
+            %{"mass" => "28801", "steps_sort" => ["new_launch"], "steps" => "x"},
             %{
               "mass" => ["28801"],
               "steps" => %{
@@ -996,14 +997,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   # The LiveViewTest doesn't run JS commands, so these check the commands each element
   # carries; the focus itself was checked in a browser
   describe "focus" do
-    test "moves to the step added with Add step, once", %{conn: conn} do
+    test "moves to the planet of the step added with Add step, once", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       refute has_element?(view, "#steps > li[phx-mounted]")
 
-      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
+      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new_launch"]})
 
-      assert has_element?(view, "#step-1[phx-mounted]")
+      assert ["focus", %{"to" => "#mission_steps_1_planet"}] in mounted_js(view, "#step-1")
       refute has_element?(view, "#step-0[phx-mounted]")
 
       change(view, %{"mass" => "28802", "steps_sort" => ["0", "1"]})
@@ -1014,7 +1015,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     test "stays put when an example is loaded", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new"]})
+      change(view, %{"mass" => "28801", "steps_sort" => ["0", "new_launch"]})
       load_example(view, "apollo-11")
 
       refute has_element?(view, "#steps > li[phx-mounted]")
@@ -1042,16 +1043,41 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   # does not run, so these tests send the steps_sort and steps_drop values the
   # buttons add to the form.
   describe "flight path" do
-    test "adds a blank step and keeps the entered values", %{conn: conn} do
+    test "adds a step with the chosen action and keeps the entered values", %{conn: conn} do
+      for action <- ["launch", "land"] do
+        {:ok, view, _html} = live(conn, ~p"/")
+
+        change(view, %{mission(28_801, land: :earth) | "steps_sort" => ["0", "new_#{action}"]})
+
+        assert has_element?(view, "#mission_mass[value='28,801']")
+        assert has_element?(view, "#mission_steps_0_action input[value='land'][checked]")
+        assert has_element?(view, "#mission_steps_0_planet option[value='earth'][selected]")
+        assert has_element?(view, "#mission_steps_1_action input[value='#{action}'][checked]")
+        refute has_element?(view, "#step-1 option[selected]")
+      end
+    end
+
+    test "adds a blank step for a new step without an action", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, %{mission(28_801, land: :earth) | "steps_sort" => ["0", "new"]})
 
-      assert has_element?(view, "#mission_mass[value='28,801']")
-      assert has_element?(view, "#mission_steps_0_action input[value='land'][checked]")
-      assert has_element?(view, "#mission_steps_0_planet option[value='earth'][selected]")
       assert has_element?(view, "#step-1")
       refute has_element?(view, "#step-1 option[selected], #step-1 input[checked]")
+      refute has_element?(view, "#steps > li[phx-mounted]")
+    end
+
+    test "opens the actions in place of Add step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#add-step-actions[role=group][aria-label='Add step']")
+      assert has_element?(view, "#add-step-actions[phx-click-away]")
+      assert has_element?(view, "#add-step-launch[phx-key=Escape][phx-keydown]")
+
+      js = view |> query("#add-step") |> LazyHTML.attribute("phx-click") |> hd() |> JSON.decode!()
+
+      assert ["set_attr", %{"to" => "#add-step-item", "attr" => ["data-open", ""]}] in js
+      assert ["focus_first", %{"to" => "#add-step-actions"}] in js
     end
 
     test "offers no buttons to move a step", %{conn: conn} do
@@ -1068,7 +1094,12 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, land: :earth, launch: :moon))
 
-      assert has_element?(view, "#add-step[name='mission[steps_sort][]'][value='new']")
+      assert has_element?(
+               view,
+               "#add-step-launch[name='mission[steps_sort][]'][value=new_launch]"
+             )
+
+      assert has_element?(view, "#add-step-land[name='mission[steps_sort][]'][value=new_land]")
       assert has_element?(view, "#remove-step-0[name='mission[steps_drop][]'][value='0']")
       assert has_element?(view, "#remove-step-1[name='mission[steps_drop][]'][value='1']")
     end

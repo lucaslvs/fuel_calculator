@@ -9,6 +9,7 @@ defmodule FuelCalculatorWeb.MissionLive do
   import FuelCalculatorWeb.MissionComponents
 
   alias FuelCalculator.FlightPath
+  alias FuelCalculator.Fuel
   alias FuelCalculator.Mission
 
   # The missions of the challenge
@@ -47,7 +48,7 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   @impl true
   def handle_event("validate", %{"mission" => %{} = params}, socket) do
-    params = form_params(params)
+    params = params |> form_params() |> new_step()
 
     {:noreply, socket |> assign_mission(params) |> assign(focus_step: added_step(params))}
   end
@@ -125,9 +126,26 @@ defmodule FuelCalculatorWeb.MissionLive do
     Map.filter(params, fn {key, value} -> is_binary(value) or key in except end)
   end
 
-  # "Add step" sends "new" in steps_sort, at the position the new step takes
+  # "Add step" sends "new_launch" or "new_land" in steps_sort, at the position the new
+  # step takes, and the new step starts with that action
+  @new_steps Map.new(Fuel.actions(), &{"new_#{&1}", "#{&1}"})
+
+  defp new_step(%{"steps_sort" => sort} = params) when is_list(sort) do
+    case Enum.find(sort, &is_map_key(@new_steps, &1)) do
+      nil -> params
+      new -> Map.update(params, "steps", %{new => new_step_params(new)}, &put_new_step(&1, new))
+    end
+  end
+
+  defp new_step(params), do: params
+
+  defp put_new_step(steps, new) when is_map(steps), do: Map.put(steps, new, new_step_params(new))
+  defp put_new_step(steps, _new), do: steps
+
+  defp new_step_params(new), do: %{"action" => Map.fetch!(@new_steps, new)}
+
   defp added_step(%{"steps_sort" => sort}) when is_list(sort),
-    do: Enum.find_index(sort, &(&1 == "new"))
+    do: Enum.find_index(sort, &is_map_key(@new_steps, &1))
 
   defp added_step(_params), do: nil
 

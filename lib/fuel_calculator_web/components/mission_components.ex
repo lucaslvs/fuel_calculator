@@ -198,36 +198,91 @@ defmodule FuelCalculatorWeb.MissionComponents do
             </.inputs_for>
           </ul>
           <ul class="timeline timeline-vertical timeline-compact w-full" role="none">
-            <li class="w-full [--timeline-row-start:0]" role="none">
+            <%!-- The card opens the actions in its place: data-open marks the item while
+                 they are shown, and the node turns into a close mark --%>
+            <li id="add-step-item" class="group/add w-full [--timeline-row-start:0]" role="none">
               <hr class="bg-base-300" aria-hidden="true" />
               <div class="timeline-middle">
-                <span class="grid size-8 place-items-center rounded-full border border-dashed border-base-content/40 text-base-content/80">
-                  <.icon name="hero-plus" class="size-4" />
+                <%!-- A larger target for the pointer; the keyboard reaches the card --%>
+                <span
+                  aria-hidden="true"
+                  phx-click={@step_count < @max_steps && open_add_step()}
+                  class={[
+                    "grid size-8 place-items-center rounded-full border border-dashed",
+                    "border-base-content/40 text-base-content/80 transition-colors",
+                    if(@step_count < @max_steps,
+                      do: [
+                        "cursor-pointer group-hover/add:border-solid group-hover/add:border-primary",
+                        "group-hover/add:bg-primary/15 group-hover/add:text-primary",
+                        "group-has-[#add-step:focus-visible]/add:border-solid",
+                        "group-has-[#add-step:focus-visible]/add:border-primary",
+                        "group-has-[#add-step:focus-visible]/add:text-primary"
+                      ],
+                      else: "opacity-50"
+                    ),
+                    "group-data-open/add:pointer-events-none group-data-open/add:border-solid",
+                    "group-data-open/add:border-primary group-data-open/add:bg-primary/15",
+                    "group-data-open/add:text-primary"
+                  ]}
+                >
+                  <.icon
+                    name="hero-plus"
+                    class={[
+                      "size-4 transition-transform duration-200 motion-reduce:transition-none",
+                      @step_count < @max_steps && "group-hover/add:rotate-90",
+                      "group-data-open/add:rotate-135"
+                    ]}
+                  />
                 </span>
               </div>
               <div class="timeline-end ms-3 w-[calc(100%-0.75rem)] min-w-0">
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <%!-- enabled: because text-primary would also color the disabled button --%>
+                <.button
+                  id="add-step"
+                  type="button"
+                  phx-click={open_add_step()}
+                  disabled={@step_count >= @max_steps}
+                  class={[
+                    "btn btn-dash h-13 w-full justify-start border-base-content/35 px-3.5 font-semibold",
+                    "disabled:border-base-content/20 disabled:bg-transparent group-data-open/add:hidden",
+                    "enabled:group-hover/add:border-solid enabled:group-hover/add:border-primary",
+                    "enabled:group-hover/add:bg-primary/8"
+                  ]}
+                >
+                  Add step
+                </.button>
+                <%!-- Each action adds a step that starts with it --%>
+                <div
+                  id="add-step-actions"
+                  role="group"
+                  aria-label="Add step"
+                  phx-click-away={close_add_step()}
+                  class={[
+                    "hidden h-13 items-center gap-2 rounded-field border border-primary bg-primary/6 px-2.5",
+                    "group-data-open/add:flex motion-safe:animate-fade-in"
+                  ]}
+                >
                   <.button
-                    id="add-step"
+                    :for={action <- Fuel.actions()}
+                    id={"add-step-#{action}"}
                     type="button"
                     name="mission[steps_sort][]"
-                    value="new"
-                    phx-click={JS.dispatch("change")}
-                    disabled={@step_count >= @max_steps}
-                    class="btn btn-ghost btn-sm -ms-3 enabled:text-primary"
+                    value={"new_#{action}"}
+                    phx-click={"change" |> JS.dispatch() |> close_add_step()}
+                    phx-keydown={close_add_step() |> JS.focus(to: "#add-step")}
+                    phx-key="Escape"
+                    class="btn btn-sm rounded-full border-base-300 bg-base-200 hover:border-primary hover:text-primary"
                   >
-                    <.icon name="hero-plus" class="size-4" /> Add step
+                    <.icon name={step_icon({action, nil})} class="size-4" /> {capitalize(action)}
                   </.button>
-                  <p
-                    :if={@step_count >= @max_steps}
-                    id="step-limit"
-                    class="flex items-center gap-1 text-xs text-base-content/80"
-                  >
-                    <.icon name="hero-information-circle-micro" class="size-4" />
-                    A flight path has at most {@max_steps} steps.
-                  </p>
                 </div>
+                <p
+                  :if={@step_count >= @max_steps}
+                  id="step-limit"
+                  class="flex items-center gap-1 pt-1.5 text-xs text-base-content/80"
+                >
+                  <.icon name="hero-information-circle-micro" class="size-4" />
+                  A flight path has at most {@max_steps} steps.
+                </p>
                 <p :if={@step_count == 0} id="empty-path" class="pt-1.5 text-sm text-base-content/80">
                   No steps yet. Add a launch or a landing to plan the flight.
                 </p>
@@ -286,7 +341,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     <li
       id={"step-#{@step.index}"}
       class="w-full [--timeline-row-start:0] motion-safe:animate-fade-in"
-      phx-mounted={@focus && JS.focus_first()}
+      phx-mounted={@focus && JS.focus(to: "##{@step[:planet].id}")}
     >
       <%!-- The spacecraft comes before the steps and "Add step" after them. The line
            that leads to a step that can't follow the previous one is in the warning
@@ -327,13 +382,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
             />
           </div>
           <div class="min-w-28 flex-1">
+            <%!-- An added step focuses its planet: below lg the margin keeps the rest of
+                 the step out from under the fixed fuel bar --%>
             <.input
               field={@step[:planet]}
               type="select"
               prompt="Planet"
               options={planet_options()}
               class={[
-                "select select-sm w-full",
+                "select select-sm w-full max-lg:scroll-mb-24",
                 warning_field(@warning) == :planet && "select-warning"
               ]}
               aria-label={"Step #{@step.index + 1} planet"}
@@ -391,6 +448,16 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp step_icon({:launch, _planet}), do: "hero-arrow-up-right"
   defp step_icon({:land, _planet}), do: "hero-arrow-down-right"
   defp step_icon(nil), do: "hero-ellipsis-horizontal"
+
+  # data-open swaps the card for the actions in CSS: JS.show and JS.hide apply the
+  # display on the next frame, too late for the focus to move to an action
+  defp open_add_step do
+    {"data-open", ""}
+    |> JS.set_attribute(to: "#add-step-item")
+    |> JS.focus_first(to: "#add-step-actions")
+  end
+
+  defp close_add_step(js \\ %JS{}), do: JS.remove_attribute(js, "data-open", to: "#add-step-item")
 
   defp change_and_focus(nil), do: JS.dispatch("change")
   defp change_and_focus(selector), do: "change" |> JS.dispatch() |> JS.focus(to: selector)
@@ -583,15 +650,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
             "has-focus-visible:outline-primary"
           ]}
         >
-          <%!-- An added step focuses this radio, near its top: below lg the margin keeps
-               the rest of the step out from under the fixed fuel bar --%>
           <input
             type="radio"
             id={Phoenix.HTML.Form.input_id(@field.form, @field.field, value)}
             name={@field.name}
             value={value}
             checked={to_string(value) == @checked}
-            class="sr-only max-lg:scroll-mb-24"
+            class="sr-only"
           />
           <.icon name={action_icon(value)} class="size-4" />
           {label}

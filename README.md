@@ -62,8 +62,9 @@ and fails when a Hex dependency is retired or has a security advisory
   changesets; there is no database.
 - Actions and planets are `Ecto.Enum` fields, so form input is cast to known
   atoms and never converted with `String.to_atom/1`.
-- An empty flight path is valid and needs 0 kg of fuel. New steps start blank, so
-  an incomplete step shows an error instead of a silent default.
+- An empty flight path is valid and needs 0 kg of fuel. New steps start with the
+  action they were added with and no planet, so a step without a planet shows an
+  error instead of a silent default.
 - A flight path has at most 15 steps. Longer params are rejected before Ecto
   casts them, and the LiveView websocket accepts frames up to 64 KB, so a crafted
   request cannot make the server build thousands of steps.
