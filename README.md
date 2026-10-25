@@ -88,6 +88,9 @@ and fails when a Hex dependency is retired or has a security advisory
   and the inline theme script runs with a per-request nonce. Development keeps
   Phoenix's default policy, since the Tidewave toolbar and the error pages rely
   on inline code.
+- The fonts (IBM Plex Sans and Mono, OFL-1.1) are served from `priv/static/fonts`
+  for the same reason: the policy doesn't allow a font CDN. Only the latin subset
+  is included, which covers every character the UI uses.
 
 ### Quality
 
