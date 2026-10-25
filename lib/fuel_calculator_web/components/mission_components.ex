@@ -166,6 +166,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 detail={@fuel && Enum.at(@fuel.details, step.index)}
                 mass={@mass}
                 warning={Enum.at(@warnings, step.index)}
+                next_warning={!is_nil(Enum.at(@warnings, step.index + 1))}
                 focus={step.index == @focus_step}
               />
             </.inputs_for>
@@ -244,6 +245,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :warning, :any, default: nil, doc: "why the step can't follow the previous one, or nil"
+
+  attr :next_warning, :boolean,
+    default: false,
+    doc: "whether the next step can't follow this one"
+
   attr :focus, :boolean, default: false, doc: "whether the step takes the focus when added"
 
   def step_row(assigns) do
@@ -255,20 +261,26 @@ defmodule FuelCalculatorWeb.MissionComponents do
       class="w-full [--timeline-row-start:0] motion-safe:animate-fade-in"
       phx-mounted={@focus && JS.focus_first()}
     >
-      <%!-- The spacecraft comes before the steps and "Add step" after them --%>
-      <hr class="bg-base-300" aria-hidden="true" />
+      <%!-- The spacecraft comes before the steps and "Add step" after them. The line
+           that leads to a step that can't follow the previous one is in the warning
+           color: the previous step's half and this one's. --%>
+      <hr class={if(@warning, do: "bg-warning", else: "bg-base-300")} aria-hidden="true" />
       <div class="timeline-middle">
         <span
           data-role="step-icon"
           class={[
             "grid size-8 place-items-center rounded-full",
-            if(@chosen,
-              do: "bg-primary text-primary-content",
-              else: "bg-base-200 text-base-content/70"
-            )
+            cond do
+              @warning -> "bg-warning text-warning-content"
+              @chosen -> "bg-primary text-primary-content"
+              true -> "bg-base-200 text-base-content/70"
+            end
           ]}
         >
-          <.icon name={step_icon(@chosen)} class="size-4" />
+          <.icon
+            name={if(@warning, do: "hero-exclamation-triangle-mini", else: step_icon(@chosen))}
+            class="size-4"
+          />
         </span>
       </div>
       <div class="timeline-end ms-3 mb-5 w-[calc(100%-0.75rem)] min-w-0">
@@ -295,6 +307,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
               field={@step[:action]}
               label={"Step #{@step.index + 1} action"}
               options={action_options()}
+              warning={warning_field(@warning) == :action}
             />
           </div>
           <div class="min-w-28 flex-1">
@@ -303,7 +316,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
               type="select"
               prompt="Planet"
               options={planet_options()}
-              class="select select-sm w-full"
+              class={[
+                "select select-sm w-full",
+                warning_field(@warning) == :planet && "select-warning"
+              ]}
               aria-label={"Step #{@step.index + 1} planet"}
               aria-describedby={@warning && "step-warning-#{@step.index}"}
             />
@@ -363,7 +379,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           value={value}
         />
       </div>
-      <hr class="bg-base-300" aria-hidden="true" />
+      <hr class={if(@next_warning, do: "bg-warning", else: "bg-base-300")} aria-hidden="true" />
     </li>
     """
   end
@@ -408,14 +424,14 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp step_warning(assigns) do
     ~H"""
     <div aria-live="polite">
-      <div
+      <p
         id={"step-warning-#{@index}"}
         hidden={is_nil(@warning)}
-        class="alert alert-warning alert-soft mb-2 items-start gap-2 px-3 py-2 text-sm text-base-content"
+        class="mb-2 flex items-start gap-2 text-sm"
       >
         <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
-        <p>{@warning && warning_message(@warning, @index)} The fuel is still calculated.</p>
-      </div>
+        <span>{@warning && warning_message(@warning, @index)}</span>
+      </p>
     </div>
     """
   end
@@ -430,6 +446,12 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp warning_message(:launch_twice, index),
     do: "Launches again without landing after step #{index}."
+
+  # The field to change so the step can follow the previous one
+  defp warning_field({:launch_elsewhere, _planet, _landed_on}), do: :planet
+  defp warning_field(:land_twice), do: :action
+  defp warning_field(:launch_twice), do: :action
+  defp warning_field(nil), do: nil
 
   attr :index, :integer, required: true
   attr :last, :boolean, default: false
@@ -510,6 +532,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
   attr :label, :string, required: true, doc: "the accessible name of the group"
   attr :options, :list, required: true, doc: "the actions, as `{label, value}` tuples"
 
+  attr :warning, :boolean,
+    default: false,
+    doc: "whether the action keeps the step from following the previous one"
+
   def action_toggle(%{field: field} = assigns) do
     errors = if used_input?(field), do: field.errors, else: []
 
@@ -532,7 +558,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
       <%!-- The checked option follows the radio's :checked, so it changes on click --%>
       <div class={[
         "inline-flex gap-0.5 rounded-field bg-base-200 p-0.5",
-        @errors != [] && "ring-1 ring-error"
+        @errors != [] && "ring-1 ring-error",
+        @warning && "ring-2 ring-warning"
       ]}>
         <label
           :for={{label, value} <- @options}
@@ -574,12 +601,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
   @doc """
   Renders the mission's total fuel or, while the mission is invalid, what it still
   lacks, with a button that focuses the first missing field. Screen readers announce
-  the total whenever it changes.
+  the total whenever it changes. When steps can't follow the previous one, it says so,
+  since the total covers the steps as entered.
 
   On large screens it is a card with an aura that sticks to the top of its column, and
   breaks the total down by step; below that, the same element is a compact bar fixed to
-  the bottom of the screen, with the number of steps (or what is missing) in place of
-  the icon, the description and the breakdown.
+  the bottom of the screen, with the number of steps (or what is missing, or a warning)
+  in place of the icon, the description and the breakdown.
   """
   attr :fuel, :map, default: nil, doc: "the mission's fuel, or nil while it is invalid"
 
@@ -587,9 +615,20 @@ defmodule FuelCalculatorWeb.MissionComponents do
     default: [],
     doc: "what the mission lacks (see `FuelCalculator.Mission.missing/1`)"
 
+  attr :warnings, :list,
+    default: [],
+    doc: "a warning or nil for each step (see `FuelCalculator.FlightPath.warnings/1`)"
+
   attr :step_count, :integer, required: true
 
   def fuel_summary(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :warned,
+        for({warning, index} <- Enum.with_index(assigns.warnings), warning, do: index)
+      )
+
     ~H"""
     <%!-- The aura colors the text with its glow, so the card resets it --%>
     <div class="block w-full text-primary motion-reduce:animate-none lg:aura lg:aura-sm lg:sticky lg:top-6">
@@ -612,7 +651,18 @@ defmodule FuelCalculatorWeb.MissionComponents do
             id="fuel-summary-steps"
             class="stat-figure max-w-40 text-end text-sm text-base-content/70 lg:hidden"
           >
-            {if @fuel, do: steps_label(@step_count), else: missing_label(@missing)}
+            <%= cond do %>
+              <% @fuel && @warned != [] -> %>
+                <span class="badge badge-warning badge-sm gap-1">
+                  <.icon name="hero-exclamation-triangle-micro" class="size-3.5" /><span class="sr-only">Warning: </span>{warned_label(
+                    @warned
+                  )}
+                </span>
+              <% @fuel -> %>
+                {steps_label(@step_count)}
+              <% true -> %>
+                {missing_label(@missing)}
+            <% end %>
           </div>
           <div class="stat-title text-base-content/70">Total fuel required</div>
           <div
@@ -629,18 +679,34 @@ defmodule FuelCalculatorWeb.MissionComponents do
           >
             {if @fuel, do: format_kg(@fuel.total), else: "Not calculated yet"}
           </div>
-          <div :if={@fuel} class="stat-desc text-base-content/70 max-lg:hidden">
+          <div :if={@fuel && @warned == []} class="stat-desc text-base-content/70 max-lg:hidden">
             Includes the fuel to carry the fuel
           </div>
+          <p
+            :if={@fuel && @warned != []}
+            id="fuel-warnings"
+            class="stat-desc mt-1 flex items-start gap-1.5 text-sm whitespace-normal text-base-content max-lg:hidden"
+          >
+            <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
+            <span>
+              {warned_sentence(@warned)}
+              <span class="text-base-content/70">The total covers the steps as entered.</span>
+            </span>
+          </p>
           <.fuel_pending :if={!@fuel} missing={@missing} />
         </div>
-        <.fuel_by_step :if={@fuel && @fuel.details != []} details={@fuel.details} />
+        <.fuel_by_step
+          :if={@fuel && @fuel.details != []}
+          details={@fuel.details}
+          warned={@warned}
+        />
       </div>
     </div>
     """
   end
 
   attr :details, :list, required: true
+  attr :warned, :list, default: [], doc: "the indexes of the steps with a warning"
 
   # The bars only show each step's share; its fuel is in the text next to it
   defp fuel_by_step(assigns) do
@@ -656,7 +722,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
         <li :for={{detail, index} <- Enum.with_index(@details, 1)}>
           <div class="flex items-baseline justify-between gap-3 text-sm">
             <span data-role="label" class="truncate text-base-content/80">
-              {index} · {action_on(detail.action, detail.planet)}
+              <.icon
+                :if={(index - 1) in @warned}
+                name="hero-exclamation-triangle-micro"
+                class="-mt-0.5 me-1 size-3.5 text-warning"
+              />{index} · {action_on(detail.action, detail.planet)}
             </span>
             <span data-role="fuel" class="font-semibold tabular-nums">
               {format_kg(detail.fuel)}
@@ -733,6 +803,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp short_missing({:step, index, fields}),
     do: "Step #{index + 1}: #{Enum.map_join(fields, " and ", &Atom.to_string/1)}"
+
+  # Steps are numbered from 1, so the previous step's number is this step's index
+  defp warned_sentence([index]), do: "Step #{index + 1} can't follow step #{index}."
+  defp warned_sentence(warned), do: "#{length(warned)} steps can't follow the previous one."
+
+  defp warned_label([index]), do: "Step #{index + 1}"
+  defp warned_label(warned), do: "#{length(warned)} steps"
 
   defp steps_label(1), do: "1 step"
   defp steps_label(count), do: "#{count} steps"

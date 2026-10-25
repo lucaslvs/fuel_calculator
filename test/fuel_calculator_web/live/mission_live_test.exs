@@ -591,7 +591,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
                "Launches from Mars, but step 2 landed on the Moon."
              )
 
-      assert has_element?(view, "#step-warning-2:not([hidden])", "The fuel is still calculated.")
+      # The total says it once for the whole path
+      refute has_element?(view, "#step-warning-2", "The fuel is still calculated.")
 
       assert has_element?(
                view,
@@ -658,6 +659,98 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(28_801, land: :moon, launch: nil))
 
       refute has_element?(view, "[id^=step-warning-]:not([hidden])")
+    end
+
+    test "mark the step and the line that leads to it on the timeline", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      for index <- [2, 4] do
+        assert has_element?(
+                 view,
+                 "#step-#{index} [data-role=step-icon].bg-warning .hero-exclamation-triangle-mini"
+               )
+
+        assert has_element?(view, "#step-#{index} > hr:first-child.bg-warning")
+        assert has_element?(view, "#step-#{index - 1} > hr:last-child.bg-warning")
+      end
+
+      for index <- [0, 1, 3] do
+        refute has_element?(view, "#step-#{index} [data-role=step-icon].bg-warning")
+        refute has_element?(view, "#step-#{index} > hr:first-child.bg-warning")
+      end
+
+      refute has_element?(view, "#step-4 > hr:last-child.bg-warning")
+    end
+
+    test "mark the field that breaks the path", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      # Step 3 launches from another planet; step 5 lands twice
+      assert has_element?(view, "#mission_steps_2_planet.select-warning")
+      refute has_element?(view, "#mission_steps_2_action .ring-warning")
+      assert has_element?(view, "#mission_steps_4_action .ring-warning")
+      refute has_element?(view, "#mission_steps_4_planet.select-warning")
+
+      for index <- [0, 1, 3] do
+        refute has_element?(view, "#mission_steps_#{index}_planet.select-warning")
+        refute has_element?(view, "#mission_steps_#{index}_action .ring-warning")
+      end
+    end
+
+    test "are summed up in the fuel summary", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, launch: :moon))
+
+      assert has_element?(
+               view,
+               "#fuel-warnings",
+               exactly("Step 2 can't follow step 1. The total covers the steps as entered.")
+             )
+
+      refute has_element?(view, "#fuel-summary .stat-desc", "Includes the fuel to carry the fuel")
+      assert has_element?(view, "#fuel-summary-steps .badge-warning", exactly("Warning: Step 2"))
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      assert has_element?(
+               view,
+               "#fuel-warnings",
+               exactly(
+                 "2 steps can't follow the previous one. The total covers the steps as entered."
+               )
+             )
+
+      assert has_element?(view, "#fuel-summary-steps .badge-warning", exactly("Warning: 2 steps"))
+
+      for index <- [3, 5] do
+        assert has_element?(
+                 view,
+                 "#fuel-by-step li:nth-child(#{index}) [data-role=label] .hero-exclamation-triangle-micro"
+               )
+      end
+
+      for index <- [1, 2, 4] do
+        refute has_element?(
+                 view,
+                 "#fuel-by-step li:nth-child(#{index}) .hero-exclamation-triangle-micro"
+               )
+      end
+    end
+
+    test "leave the fuel summary alone when the path can be flown", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      load_example(view, "apollo-11")
+
+      refute has_element?(view, "#fuel-warnings")
+      refute has_element?(view, "#fuel-summary .hero-exclamation-triangle-micro")
+      assert has_element?(view, "#fuel-summary .stat-desc", "Includes the fuel to carry the fuel")
+      assert has_element?(view, "#fuel-summary-steps", exactly("4 steps"))
     end
 
     test "describe the planet of the step", %{conn: conn} do

@@ -228,7 +228,12 @@ defmodule FuelCalculatorWeb.MissionLive do
           </div>
         </div>
 
-        <.fuel_summary fuel={@fuel} missing={@missing} step_count={@step_count} />
+        <.fuel_summary
+          fuel={@fuel}
+          missing={@missing}
+          warnings={@warnings}
+          step_count={@step_count}
+        />
       </div>
     </Layouts.app>
     """
