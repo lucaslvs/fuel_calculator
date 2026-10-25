@@ -80,8 +80,10 @@ tests `GET /` and the LiveView websocket at `/live`.
   (plain `gigalixir logs` follows the stream forever); roll back with
   `gigalixir releases` and `gigalixir releases:rollback [-r <version>]`
 - A failed scheduled run notifies only the user who last changed the `cron` line
-  in `ci.yml`; the keep-alive skips the deploy when `main` has moved since the run
-  started
+  in `ci.yml`
+- Every run (push, keep-alive, manual) skips the deploy when `main` has moved since
+  it started, since the newer commit's run deploys it; if that run fails, nothing
+  is deployed until the next green push
 - Changing production (`gigalixir config:set`, scaling, restarts, rollbacks,
   deleting apps) is outward-facing: ask before doing it
 

@@ -144,21 +144,24 @@ jobs:
             echo "machine $host login $GIGALIXIR_EMAIL password $GIGALIXIR_API_KEY"
           done > ~/.netrc
 
-      # Pushing the SHA Gigalixir already has sends nothing and builds nothing, so
-      # scheduled and manual runs deploy an empty commit that is never pushed to GitHub.
-      # They skip the deploy when main has moved on, since the run of the newer commit
-      # deploys it and this one could otherwise roll it back.
-      - name: Create keep-alive commit
-        if: github.event_name != 'push'
+      # The run of a newer commit deploys it, so a run whose commit is no longer main
+      # skips the deploy: two pushes close together could otherwise deploy out of order,
+      # and a keep-alive could roll main back.
+      - name: Check that main has not moved
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" -q .sha)
           if [ "$main" != "$GITHUB_SHA" ]; then
-            echo "::notice::Skipping the keep-alive: main moved from $GITHUB_SHA to $main"
+            echo "::notice::Skipping the deploy: main moved from $GITHUB_SHA to $main"
             echo "SKIP_DEPLOY=true" >> "$GITHUB_ENV"
-            exit 0
           fi
+
+      # Pushing the SHA Gigalixir already has sends nothing and builds nothing, so
+      # scheduled and manual runs deploy an empty commit that is never pushed to GitHub.
+      - name: Create keep-alive commit
+        if: github.event_name != 'push' && env.SKIP_DEPLOY != 'true'
+        run: |
           git -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit --allow-empty -m "chore: keep the Gigalixir app alive"

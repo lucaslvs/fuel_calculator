@@ -125,11 +125,15 @@ Every push to `main` that passes CI is deployed by the `deploy` job in
 2. waits until every instance runs that commit and reports healthy;
 3. smoke tests the home page and the LiveView websocket upgrade.
 
+A run whose commit is no longer the tip of `main` skips the deploy, since the
+run of the newer commit deploys it; otherwise two pushes close together could
+leave the older one in production.
+
 Changes that only touch documentation (`*.md`, `docs/`) skip CI and deployment.
 The same job also redeploys `main` on the 1st and 15th of each month, because
-Gigalixir's free tier scales apps down to 0 after 30 days without a deploy. That
-run skips the deploy if `main` has moved since it started, and when it fails,
-GitHub notifies only the user who last changed the `cron` line in the workflow.
+Gigalixir's free tier scales apps down to 0 after 30 days without a deploy. When
+that run fails, GitHub notifies only the user who last changed the `cron` line in
+the workflow.
 
 To roll back, list the releases with `gigalixir releases` and run
 `gigalixir releases:rollback` (the previous release, or `-r <version>`).
