@@ -83,12 +83,6 @@ defmodule FuelCalculator.Mission do
   defp step_params(_steps), do: []
 
   @doc """
-  Returns the largest spacecraft mass, in kg.
-  """
-  @spec max_mass() :: pos_integer()
-  def max_mass, do: @max_mass
-
-  @doc """
   Returns the largest number of steps in a flight path.
   """
   @spec max_steps() :: pos_integer()

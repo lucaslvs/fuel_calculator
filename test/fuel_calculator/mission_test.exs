@@ -173,9 +173,8 @@ defmodule FuelCalculator.MissionTest do
       assert Ecto.Changeset.get_change(changeset, :steps) == nil
     end
 
-    test "is exposed with the mass limit" do
+    test "is exposed" do
       assert Mission.max_steps() == 15
-      assert Mission.max_mass() == 1_000_000_000_000
     end
   end
 
