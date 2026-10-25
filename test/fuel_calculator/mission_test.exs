@@ -145,6 +145,7 @@ defmodule FuelCalculator.MissionTest do
             %{"mass" => "28801", "steps" => steps(16)},
             %{"mass" => "28801", "steps" => Map.values(steps(16))},
             %{"mass" => "28801", "steps_sort" => List.duplicate("new", 16)},
+            %{"mass" => "28801", "steps_drop" => List.duplicate("0", 16)},
             %{mass: 28_801, steps: Map.values(steps(16))}
           ] do
         assert errors_on(cast(params)) == %{steps: ["should have at most 15 item(s)"]},

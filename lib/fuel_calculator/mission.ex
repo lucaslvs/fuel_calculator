@@ -49,14 +49,15 @@ defmodule FuelCalculator.Mission do
     |> cast_steps()
   end
 
-  # Casting builds a changeset for every step in the params, so oversized params are
-  # rejected before casting, and it raises on a step given as a list instead of a map.
+  # Casting builds a changeset for every step in the params, which the changeset keeps,
+  # so oversized params are rejected before casting, and it raises on a step given as a
+  # list instead of a map.
   # cast/3 has already turned the params keys into strings.
   defp cast_steps(%{params: params} = changeset) do
     steps = params["steps"]
 
     cond do
-      max(param_length(steps), param_length(params["steps_sort"])) > @max_steps ->
+      oversized?(params) ->
         add_error(changeset, :steps, "should have at most %{count} item(s)",
           count: @max_steps,
           validation: :length,
@@ -72,6 +73,10 @@ defmodule FuelCalculator.Mission do
         |> cast_embed(:steps, sort_param: :steps_sort, drop_param: :steps_drop)
         |> validate_length(:steps, max: @max_steps)
     end
+  end
+
+  defp oversized?(params) do
+    Enum.any?(~w(steps steps_sort steps_drop), &(param_length(params[&1]) > @max_steps))
   end
 
   defp param_length(steps) when is_map(steps), do: map_size(steps)
