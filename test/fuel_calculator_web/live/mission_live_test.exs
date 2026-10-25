@@ -90,7 +90,9 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     for {mass, shown} <- [
           {"28801", "28,801"},
           {"28,801", "28,801"},
-          {"1000000000000", "1,000,000,000,000"}
+          {"1000000000000", "1,000,000,000,000"},
+          # Past the largest mass, so invalid, but grouped still
+          {"999999999999999", "999,999,999,999,999"}
         ] do
       test "shows #{mass} with its digits grouped", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
@@ -109,7 +111,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
 
-    for mass <- ["12a", "1.5", "-1"] do
+    for mass <- ["12a", "1.5", "-1", "1000000000000000"] do
       test "shows the invalid mass #{mass} as it was typed", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
