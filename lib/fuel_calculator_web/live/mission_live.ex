@@ -68,7 +68,7 @@ defmodule FuelCalculatorWeb.MissionLive do
     changeset = socket.assigns.form.source
 
     with {index, ""} when index >= 0 <- Integer.parse(index),
-         {action, planet} <- changeset |> Mission.path() |> FlightPath.fixes() |> Enum.at(index) do
+         {action, planet} <- Enum.at(socket.assigns.fixes, index) do
       {:noreply, assign_mission(socket, fixed_params(changeset, index, action, planet))}
     else
       _ -> {:noreply, socket}
