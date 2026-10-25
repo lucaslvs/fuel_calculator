@@ -1,7 +1,7 @@
-defmodule FuelCalculatorWeb.FontsTest do
+defmodule FuelCalculatorWeb.StaticAssetsTest do
   use FuelCalculatorWeb.ConnCase, async: true
 
-  @css_fonts ~r{url\("(/fonts/[^"]+)"\)}
+  @css_urls ~r{url\("(/[^"]+)"\)}
 
   test "pages preload the body font", %{conn: conn} do
     document = conn |> get(~p"/") |> html_response(200) |> LazyHTML.from_document()
@@ -13,20 +13,25 @@ defmodule FuelCalculatorWeb.FontsTest do
     assert document |> LazyHTML.query(selector) |> Enum.count() == 1
   end
 
-  # The CSP only allows fonts from the app's own origin
-  test "serves every font the CSS asks for", %{conn: conn} do
+  # The CSP only allows fonts and images from the app's own origin
+  test "serves every font and image the CSS asks for", %{conn: conn} do
     paths =
-      @css_fonts
+      @css_urls
       |> Regex.scan(File.read!("assets/css/app.css"), capture: :all_but_first)
       |> List.flatten()
+      |> Enum.uniq()
 
-    assert length(paths) == 4
+    assert Enum.count(paths, &String.starts_with?(&1, "/fonts/")) == 4
+    assert Enum.count(paths, &String.starts_with?(&1, "/images/")) == 5
 
     for path <- paths do
       conn = get(conn, path)
 
       assert conn.status == 200
-      assert conn |> get_resp_header("content-type") |> hd() =~ "font/woff2"
+      assert conn |> get_resp_header("content-type") |> hd() =~ content_type(path)
     end
   end
+
+  defp content_type("/fonts/" <> _), do: "font/woff2"
+  defp content_type("/images/" <> _), do: "image/svg+xml"
 end

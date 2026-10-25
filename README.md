@@ -91,6 +91,9 @@ and fails when a Hex dependency is retired or has a security advisory
 - The fonts (IBM Plex Sans and Mono, OFL-1.1) are served from `priv/static/fonts`
   for the same reason: the policy doesn't allow a font CDN. Only the latin subset
   is included, which covers every character the UI uses.
+- The sky behind the page is CSS over SVGs in `priv/static/images`: star tiles
+  (colors from Mitchell Charity's star color table) and fractal-noise masks for
+  the nebula, painted in the theme colors. The policy covers them as images.
 
 ### Quality
 
