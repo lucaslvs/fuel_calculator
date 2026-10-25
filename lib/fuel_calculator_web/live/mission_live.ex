@@ -199,12 +199,6 @@ defmodule FuelCalculatorWeb.MissionLive do
       <div class="max-lg:pb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
         <div class="space-y-4">
           <header class="pb-4">
-            <p
-              class="badge badge-soft badge-primary badge-sm mb-3 gap-1 max-sm:hidden"
-              aria-hidden="true"
-            >
-              <.icon name="hero-globe-europe-africa-micro" class="size-3.5" /> Earth · Moon · Mars
-            </p>
             <h1 class="text-2xl font-bold tracking-tight sm:text-4xl">
               Interplanetary <span class="text-primary">fuel</span> calculator
             </h1>
