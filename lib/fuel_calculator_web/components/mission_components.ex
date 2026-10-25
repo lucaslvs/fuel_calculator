@@ -742,7 +742,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             class={[
               "stat-value font-normal tabular-nums",
               if(@fuel,
-                do: "max-lg:text-2xl",
+                do: total_size(format_kg(@fuel.total)),
                 else: "text-2xl text-base-content/70 max-lg:text-lg"
               )
             ]}
@@ -777,6 +777,17 @@ defmodule FuelCalculatorWeb.MissionComponents do
     """
   end
 
+  # The total doesn't wrap and the summary card is narrow: a figure takes about half an em,
+  # and the longest total (15 launches from Earth at the largest mass) has 24 characters
+  defp total_size(total) do
+    case String.length(total) do
+      length when length <= 13 -> "max-lg:text-2xl"
+      length when length <= 17 -> "text-2xl max-lg:text-xl"
+      length when length <= 20 -> "text-xl max-lg:text-lg"
+      _ -> "text-lg max-lg:text-sm"
+    end
+  end
+
   attr :details, :list, required: true
   attr :warned, :list, default: [], doc: "the indexes of the steps with a warning"
 
@@ -796,15 +807,16 @@ defmodule FuelCalculatorWeb.MissionComponents do
       </p>
       <ul id="fuel-by-step" class="space-y-3 px-6 pt-3 pb-5 max-lg:px-4">
         <li :for={{detail, index} <- Enum.with_index(@details, 1)}>
-          <div class="flex items-baseline justify-between gap-3 text-sm">
-            <span data-role="label" class="truncate text-base-content/80">
+          <%!-- A long fuel wraps below the label instead of cutting it --%>
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+            <span data-role="label" class="text-base-content/80">
               <.icon
                 :if={(index - 1) in @warned}
                 name="hero-exclamation-triangle-micro"
                 class="-mt-0.5 me-1 size-3.5 text-warning"
               />{index} · {action_on(detail.action, detail.planet)}
             </span>
-            <span data-role="fuel" class="font-semibold tabular-nums">
+            <span data-role="fuel" class="ms-auto font-semibold tabular-nums">
               {format_kg(detail.fuel)}
             </span>
           </div>

@@ -142,6 +142,29 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-details-0 summary", "How 1,035,490,598,312 kg is")
     end
 
+    # The summary card is narrow and the total doesn't wrap, so long totals are smaller
+    test "steps down in size as it gets longer", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth))
+      assert has_element?(view, "#total-fuel", exactly("19,772 kg"))
+      refute has_element?(view, "#total-fuel.text-2xl")
+      refute has_element?(view, "#total-fuel.text-lg")
+
+      change(view, mission(1_000_000_000, launch: :earth))
+      assert has_element?(view, "#total-fuel", exactly("700,372,676 kg"))
+      assert has_element?(view, "#total-fuel.text-2xl")
+
+      change(view, mission(1_000_000_000_000, launch: :earth, land: :earth))
+      assert has_element?(view, "#total-fuel", exactly("1,513,973,496,138 kg"))
+      assert has_element?(view, "#total-fuel.text-xl")
+
+      # The longest total there can be
+      change(view, mission(1_000_000_000_000, List.duplicate({:launch, :earth}, 15)))
+      assert has_element?(view, "#total-fuel", exactly("2,870,877,069,360,685 kg"))
+      assert has_element?(view, "#total-fuel.text-lg")
+    end
+
     test "is announced to screen readers when it changes", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
