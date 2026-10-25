@@ -49,7 +49,7 @@ defmodule FuelCalculatorWeb.MissionLive do
   def handle_event("validate", %{"mission" => %{} = params}, socket) do
     params = params |> form_params() |> new_step()
 
-    {:noreply, socket |> assign_mission(params) |> assign(focus_step: added_step(params))}
+    {:noreply, assign_mission(socket, params, added_step(params))}
   end
 
   def handle_event("load_example", %{"id" => id}, socket) do
@@ -148,9 +148,9 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   defp added_step(_params), do: nil
 
-  # Only the change that adds a step sets focus_step, so loading the page or an example
-  # never takes the focus
-  defp assign_mission(socket, params) do
+  # focus_step is the index of the step that takes the focus. Only the change that adds
+  # a step passes one, so loading the page or an example never takes the focus.
+  defp assign_mission(socket, params, focus_step \\ nil) do
     changeset = Mission.changeset(%Mission{}, params)
     mass = valid_mass(changeset)
     path = Mission.path(changeset)
@@ -166,7 +166,7 @@ defmodule FuelCalculatorWeb.MissionLive do
     assign(socket,
       form: to_form(changeset, action: :validate),
       mass: mass,
-      focus_step: nil,
+      focus_step: focus_step,
       fuel: fuel,
       missing: Mission.missing(changeset) ++ first_step(changeset, path),
       next_step: next_step?(mass, path),
