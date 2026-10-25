@@ -315,8 +315,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders a step of the flight path as a timeline item: an icon of its action, a title
-  with its number, action and planet, its fuel, its action and planet, the button that
-  removes it, a warning when it can't follow the previous step, and how its fuel is
+  with its number, action and planet next to the button that removes it, its action
+  and planet, a warning when it can't follow the previous step, and how its fuel is
   calculated.
 
   Removing a step re-renders the rows by position, so the button also moves the focus
@@ -378,13 +378,28 @@ defmodule FuelCalculatorWeb.MissionComponents do
         </span>
       </div>
       <div class="timeline-end ms-3 mb-5 w-[calc(100%-0.75rem)] min-w-0">
-        <%!-- The step's fuel is in its details' summary and in "Fuel by step" --%>
-        <p data-role="step-title" class="pt-1 text-sm font-semibold">
-          {@step.index + 1} · {step_title(@chosen)}
-        </p>
+        <%!-- The step's fuel is in its details' summary and in "Fuel by step". The remove
+             button ends the title's line, so it never wraps alone below the fields; its
+             margins center it on the title without making the line taller. --%>
+        <div class="flex items-start justify-between gap-2">
+          <p data-role="step-title" class="pt-1 text-sm font-semibold">
+            {@step.index + 1} · {step_title(@chosen)}
+          </p>
+          <.button
+            id={"remove-step-#{@step.index}"}
+            type="button"
+            name="mission[steps_drop][]"
+            value={@step.index}
+            phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
+            class="btn btn-ghost btn-sm btn-square -mt-0.5 -mb-1.5 shrink-0 text-base-content/70 hover:text-error"
+            aria-label={"Remove step #{@step.index + 1}"}
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </.button>
+        </div>
         <div class="mt-2 flex flex-wrap items-start gap-x-2 gap-y-2">
-          <%!-- With the 4px the select's fieldset adds above it, the paddings center the
-               36px action group, the select and the remove button on the same line. --%>
+          <%!-- With the 4px the select's fieldset adds above it, the padding centers the
+               36px action group and the select on the same line. --%>
           <div class="flex-none pt-0.5">
             <.action_toggle
               field={@step[:action]}
@@ -408,19 +423,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
               aria-label={"Step #{@step.index + 1} planet"}
               aria-describedby={@warning && "step-warning-#{@step.index}"}
             />
-          </div>
-          <div class="flex items-center pt-1">
-            <.button
-              id={"remove-step-#{@step.index}"}
-              type="button"
-              name="mission[steps_drop][]"
-              value={@step.index}
-              phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
-              class="btn btn-ghost btn-sm btn-square text-base-content/70 hover:text-error"
-              aria-label={"Remove step #{@step.index + 1}"}
-            >
-              <.icon name="hero-x-mark" class="size-4" />
-            </.button>
           </div>
         </div>
         <div>

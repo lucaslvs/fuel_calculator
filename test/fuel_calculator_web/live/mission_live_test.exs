@@ -1102,6 +1102,15 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert ["focus_first", %{"to" => "#add-step-actions"}] in js
     end
 
+    # On the title's line, so it never wraps alone below the action and the planet
+    test "puts the remove button next to the step's title", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth))
+
+      assert has_element?(view, "#step-0 [data-role=step-title] + #remove-step-0")
+    end
+
     test "offers no buttons to move a step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
