@@ -233,7 +233,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                     type="number"
                     label="Spacecraft mass"
                     label_class="mb-1 block text-sm font-semibold"
-                    class="input w-full tabular-nums"
+                    class="input w-full font-mono tabular-nums"
                     min="1"
                     max={@max_mass}
                     step="1"
@@ -247,7 +247,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                   <p
                     :if={@mass}
                     id="mass-hint"
-                    class="mt-1 text-sm text-base-content/80 tabular-nums"
+                    class="mt-1 font-mono text-sm text-base-content/80 tabular-nums"
                   >
                     {format_kg(@mass)}
                   </p>
