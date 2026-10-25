@@ -219,14 +219,39 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#fuel-by-step")
     end
 
+    test "opens the fuel by step from the bar below lg", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "#fuel-by-step-toggle")
+
+      load_example(view, "apollo-11")
+
+      assert has_element?(
+               view,
+               "#fuel-by-step-toggle[aria-expanded=false][aria-controls=fuel-by-step-panel]"
+             )
+
+      assert has_element?(view, "#fuel-by-step-panel.max-lg\\:hidden #fuel-by-step")
+
+      commands =
+        view
+        |> query("#fuel-by-step-toggle")
+        |> LazyHTML.attribute("phx-click")
+        |> hd()
+        |> JSON.decode!()
+
+      assert ["toggle_class", %{"names" => ["max-lg:hidden"], "to" => "#fuel-by-step-panel"}] in commands
+      assert ["toggle_attr", %{"attr" => ["aria-expanded", "true", "false"]}] in commands
+    end
+
     test "tells how many steps the summary covers", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, land: :earth))
-      assert has_element?(view, "#fuel-summary-steps", exactly("1 step"))
+      assert has_element?(view, "#fuel-summary-steps [data-role=status]", exactly("1 step"))
 
       load_example(view, "apollo-11")
-      assert has_element?(view, "#fuel-summary-steps", exactly("4 steps"))
+      assert has_element?(view, "#fuel-summary-steps [data-role=status]", exactly("4 steps"))
     end
   end
 
@@ -757,7 +782,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#fuel-warnings")
       refute has_element?(view, "#fuel-summary .hero-exclamation-triangle-micro")
       assert has_element?(view, "#fuel-summary .stat-desc", "Includes the fuel to carry the fuel")
-      assert has_element?(view, "#fuel-summary-steps", exactly("4 steps"))
+      assert has_element?(view, "#fuel-summary-steps [data-role=status]", exactly("4 steps"))
     end
 
     test "describe the planet of the step", %{conn: conn} do

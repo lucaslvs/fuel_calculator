@@ -694,13 +694,39 @@ defmodule FuelCalculatorWeb.MissionComponents do
             id="fuel-summary-steps"
             class="stat-figure max-w-40 text-end text-sm text-base-content/70 lg:hidden"
           >
+            <%!-- One button for both labels, so its expanded state survives a new warning.
+                 JS commands keep their changes across patches. --%>
+            <.button
+              :if={@fuel && @fuel.details != []}
+              id="fuel-by-step-toggle"
+              type="button"
+              class="group btn btn-ghost btn-sm -me-2 gap-1 px-2 font-normal"
+              aria-expanded="false"
+              aria-controls="fuel-by-step-panel"
+              phx-click={
+                JS.toggle_class("max-lg:hidden", to: "#fuel-by-step-panel")
+                |> JS.toggle_attribute({"aria-expanded", "true", "false"})
+              }
+            >
+              <span data-role="status">
+                <%= if @warned != [] do %>
+                  <span class="badge badge-warning badge-sm gap-1">
+                    <.icon name="hero-exclamation-triangle-micro" class="size-3.5" /><span class="sr-only">Warning: </span>{warned_label(
+                      @warned
+                    )}
+                  </span>
+                <% else %>
+                  {steps_label(@step_count)}
+                <% end %>
+              </span>
+              <span class="sr-only">, fuel by step</span>
+              <.icon
+                name="hero-chevron-up-mini"
+                class="size-4 transition-transform group-aria-expanded:rotate-180 motion-reduce:transition-none"
+              />
+            </.button>
             <%= cond do %>
-              <% @fuel && @warned != [] -> %>
-                <span class="badge badge-warning badge-sm gap-1">
-                  <.icon name="hero-exclamation-triangle-micro" class="size-3.5" /><span class="sr-only">Warning: </span>{warned_label(
-                    @warned
-                  )}
-                </span>
+              <% @fuel && @fuel.details != [] -> %>
               <% @fuel -> %>
                 {steps_label(@step_count)}
               <% true -> %>
@@ -757,11 +783,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
       assign(assigns, :max, assigns.details |> Enum.map(& &1.fuel) |> Enum.max() |> max(1))
 
     ~H"""
-    <div class="border-t border-base-300 max-lg:hidden">
-      <p class="px-6 pt-4 text-xs font-semibold tracking-wide text-base-content/80 uppercase">
+    <%!-- Below lg it is part of the bar, opened by #fuel-by-step-toggle --%>
+    <div
+      id="fuel-by-step-panel"
+      class="border-t border-base-300 max-lg:hidden max-lg:max-h-[45dvh] max-lg:overflow-y-auto"
+    >
+      <p class="px-6 pt-4 text-xs font-semibold tracking-wide text-base-content/80 uppercase max-lg:px-4">
         Fuel by step
       </p>
-      <ul id="fuel-by-step" class="space-y-3 px-6 pt-3 pb-5">
+      <ul id="fuel-by-step" class="space-y-3 px-6 pt-3 pb-5 max-lg:px-4">
         <li :for={{detail, index} <- Enum.with_index(@details, 1)}>
           <div class="flex items-baseline justify-between gap-3 text-sm">
             <span data-role="label" class="truncate text-base-content/80">
