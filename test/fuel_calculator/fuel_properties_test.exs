@@ -23,6 +23,12 @@ defmodule FuelCalculator.FuelPropertiesTest do
     end
   end
 
+  property "explains each step as the exact model does" do
+    check all mass <- mass(), path <- path() do
+      assert Fuel.explain(mass, path) == exact_explain(mass, path)
+    end
+  end
+
   # Masses across the whole range are almost all huge, so small ones are drawn apart
   defp mass, do: one_of([integer(1..100_000), integer(1..1_000_000_000_000)])
 
@@ -33,19 +39,38 @@ defmodule FuelCalculator.FuelPropertiesTest do
   # Each step carries the fuel of the later steps, so the path is folded from the end
   defp exact_total(mass, path) do
     List.foldr(path, 0, fn {action, planet}, carried ->
-      carried + exact_step_fuel(mass + carried, action, planet)
+      carried + Enum.sum(exact_iterations(mass + carried, action, planet))
     end)
   end
 
-  defp exact_step_fuel(mass, action, planet) do
+  defp exact_explain(mass, path) do
+    path
+    |> List.foldr({[], 0}, fn {action, planet}, {details, carried} ->
+      iterations = exact_iterations(mass + carried, action, planet)
+      fuel = Enum.sum(iterations)
+
+      detail = %{
+        action: action,
+        planet: planet,
+        mass: mass + carried,
+        iterations: iterations,
+        fuel: fuel
+      }
+
+      {[detail | details], carried + fuel}
+    end)
+    |> elem(0)
+  end
+
+  defp exact_iterations(mass, action, planet) do
     {gravity, gravity_scale} = fraction(@gravities[planet])
     {factor, offset} = @formulas[action]
     {factor, factor_scale} = fraction(factor)
     scale = gravity_scale * factor_scale
 
     case Integer.floor_div(mass * gravity * factor - offset * scale, scale) do
-      fuel when fuel > 0 -> fuel + exact_step_fuel(fuel, action, planet)
-      _ -> 0
+      fuel when fuel > 0 -> [fuel | exact_iterations(fuel, action, planet)]
+      _ -> []
     end
   end
 
