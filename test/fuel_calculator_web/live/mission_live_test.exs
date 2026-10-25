@@ -1208,8 +1208,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0 > hr ~ hr")
     end
 
-    # Parsing an integer this long raises a system limit error
-    # render_hook sends the params as they are, without the form's inputs
     test "counts the steps left only close to the limit", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
