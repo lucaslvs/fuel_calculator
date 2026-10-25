@@ -187,7 +187,11 @@ defmodule FuelCalculatorWeb.MissionLive do
   # the last step has its action and planet
   defp next_step?(nil, _path), do: false
   defp next_step?(_mass, []), do: true
-  defp next_step?(_mass, path), do: path |> List.last() |> Tuple.to_list() |> Enum.all?()
+
+  defp next_step?(_mass, path) do
+    {action, planet} = List.last(path)
+    action != nil and planet != nil
+  end
 
   # The example the mission matches, whether it was loaded or typed in, so editing
   # any of its values unmarks it
@@ -199,8 +203,9 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   # The mass field shows its digits grouped, as its hook does while typing. A value that
-  # isn't cast to an integer is shown as it was typed, and a mass far beyond the largest
-  # as it is, since it is invalid anyway.
+  # isn't cast to an integer is shown as it was typed. Grouping takes time quadratic in
+  # the digits (10,000 take over a second), so a mass far beyond the largest, invalid
+  # anyway, is shown as it is.
   defp grouped_mass(mass) when mass in 0..999_999_999_999_999//1, do: format_number(mass)
   defp grouped_mass(mass), do: mass
 

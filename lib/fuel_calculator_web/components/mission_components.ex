@@ -830,9 +830,9 @@ defmodule FuelCalculatorWeb.MissionComponents do
   # and the longest total (15 launches from Earth at the largest mass) has 24 characters
   defp total_size(total) do
     case String.length(total) do
-      length when length <= 13 -> "max-lg:text-2xl"
-      length when length <= 17 -> "text-2xl max-lg:text-xl"
-      length when length <= 20 -> "text-xl max-lg:text-lg"
+      chars when chars <= 13 -> "max-lg:text-2xl"
+      chars when chars <= 17 -> "text-2xl max-lg:text-xl"
+      chars when chars <= 20 -> "text-xl max-lg:text-lg"
       _ -> "text-lg max-lg:text-sm"
     end
   end

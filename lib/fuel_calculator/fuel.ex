@@ -107,13 +107,14 @@ defmodule FuelCalculator.Fuel do
     path
     |> Enum.reverse()
     |> Enum.map_reduce(0, fn {action, planet}, carried ->
-      iterations = iterations(mass + carried, action, planet)
+      step_mass = mass + carried
+      iterations = iterations(step_mass, action, planet)
       fuel = Enum.sum(iterations)
 
       detail = %{
         action: action,
         planet: planet,
-        mass: mass + carried,
+        mass: step_mass,
         iterations: iterations,
         fuel: fuel
       }

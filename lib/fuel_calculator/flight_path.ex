@@ -59,17 +59,13 @@ defmodule FuelCalculator.FlightPath do
   defp fix(:land_twice, {:land, landed_on}, _step), do: {:launch, landed_on}
   defp fix(nil, _previous, _step), do: nil
 
-  defp warning({:land, landed_on}, {:launch, planet})
-       when not is_nil(landed_on) and not is_nil(planet) and landed_on != planet,
-       do: {:launch_elsewhere, planet, landed_on}
+  defp warning({_action, nil}, _step), do: nil
+  defp warning(_previous, {_action, nil}), do: nil
 
-  defp warning({:land, landed_on}, {:land, planet})
-       when not is_nil(landed_on) and not is_nil(planet),
-       do: :land_twice
+  defp warning({:land, landed_on}, {:launch, planet}) when landed_on != planet,
+    do: {:launch_elsewhere, planet, landed_on}
 
-  defp warning({:launch, launched_from}, {:launch, planet})
-       when not is_nil(launched_from) and not is_nil(planet),
-       do: :launch_twice
-
+  defp warning({:land, _landed_on}, {:land, _planet}), do: :land_twice
+  defp warning({:launch, _launched_from}, {:launch, _planet}), do: :launch_twice
   defp warning(_previous, _step), do: nil
 end
