@@ -321,7 +321,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   Removing a step re-renders the rows by position, so the button also moves the focus
   to the one that keeps the user's place, which exists before and after the change:
-  the previous step's remove button.
+  the previous step's remove button, or for the only step Add step, or the mass field
+  while Add step isn't shown.
   """
   attr :step, Phoenix.HTML.Form, required: true, doc: "the step's form, from `inputs_for`"
   attr :step_count, :integer, required: true
@@ -390,7 +391,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
             type="button"
             name="mission[steps_drop][]"
             value={@step.index}
-            phx-click={change_and_focus(remove_focus(@step.index, @step_count))}
+            phx-click={change_and_focus(remove_focus(@step.index, @step_count, @continues))}
             class="btn btn-ghost btn-sm btn-square -mt-0.5 -mb-1.5 shrink-0 text-base-content/70 hover:text-error"
             aria-label={"Remove step #{@step.index + 1}"}
           >
@@ -480,9 +481,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp change_and_focus(nil), do: JS.dispatch("change")
   defp change_and_focus(selector), do: "change" |> JS.dispatch() |> JS.focus(to: selector)
 
-  defp remove_focus(0, 1), do: "#add-step"
-  defp remove_focus(0, _count), do: nil
-  defp remove_focus(index, _count), do: "#remove-step-#{index - 1}"
+  # The only step's timeline goes on below it only to Add step
+  defp remove_focus(0, 1, true = _continues), do: "#add-step"
+  defp remove_focus(0, 1, false = _continues), do: "#mission_mass"
+  defp remove_focus(0, _count, _continues), do: nil
+  defp remove_focus(index, _count, _continues), do: "#remove-step-#{index - 1}"
 
   attr :index, :integer, required: true
   attr :warning, :any, default: nil

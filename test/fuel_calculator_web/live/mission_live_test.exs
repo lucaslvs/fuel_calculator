@@ -1046,6 +1046,20 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert focus_target(view, "#remove-step-0") == "#add-step"
     end
 
+    # The focus moves on the click, before the change, so it can't go to an Add step that
+    # only shows up once the step is gone
+    test "moves to the mass when the only step is removed without Add step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, %{"mass" => "28801", "steps_sort" => ["new_launch"]})
+      refute has_element?(view, "#add-step")
+      assert focus_target(view, "#remove-step-0") == "#mission_mass"
+
+      change(view, mission("abc", land: :earth))
+      refute has_element?(view, "#add-step")
+      assert focus_target(view, "#remove-step-0") == "#mission_mass"
+    end
+
     test "moves to the previous step's remove button on removal", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
