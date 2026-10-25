@@ -1163,19 +1163,23 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#move-step-down-1[disabled]")
     end
 
-    test "counts the steps against the limit", %{conn: conn} do
+    test "counts the steps left only close to the limit", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert has_element?(view, "#step-count", exactly("1 / 15 steps"))
+      refute has_element?(view, "#steps-left")
 
-      change(view, %{"mass" => "28801", "steps_sort" => ["0"], "steps_drop" => ["0"]})
-      assert has_element?(view, "#step-count", exactly("0 / 15 steps"))
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 11)))
+      refute has_element?(view, "#steps-left")
 
-      change(view, mission(28_801, @apollo))
-      assert has_element?(view, "#step-count", exactly("4 / 15 steps"))
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 12)))
+      assert has_element?(view, "#steps-left", exactly("3 more steps allowed"))
+
+      change(view, mission(28_801, List.duplicate({:land, :moon}, 14)))
+      assert has_element?(view, "#steps-left", exactly("1 more step allowed"))
 
       change(view, mission(28_801, List.duplicate({:land, :moon}, 15)))
-      assert has_element?(view, "#step-count", exactly("15 / 15 steps"))
+      refute has_element?(view, "#steps-left")
+      assert has_element?(view, "#step-limit")
     end
 
     test "starts with the spacecraft and ends with Add step", %{conn: conn} do

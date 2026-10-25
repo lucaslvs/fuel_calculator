@@ -132,12 +132,19 @@ defmodule FuelCalculatorWeb.MissionComponents do
   slot :spacecraft, required: true, doc: "the spacecraft's fields, in the first node"
 
   def flight_path(assigns) do
+    assigns = assign(assigns, :steps_left, assigns.max_steps - assigns.step_count)
+
     ~H"""
     <div>
       <div class="flex items-baseline justify-between gap-2">
         <h2 class="text-sm font-semibold">Flight path</h2>
-        <span id="step-count" class="text-xs text-base-content/80 tabular-nums">
-          {@step_count} / {@max_steps}<span class="sr-only"> steps</span>
+        <%!-- Only close to the limit; at the limit, the note next to "Add step" says it --%>
+        <span
+          :if={@steps_left in 1..3}
+          id="steps-left"
+          class="text-xs text-base-content/80 tabular-nums"
+        >
+          {@steps_left} more {if(@steps_left == 1, do: "step", else: "steps")} allowed
         </span>
       </div>
 
