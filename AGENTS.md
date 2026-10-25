@@ -63,6 +63,9 @@ tests `GET /` and the LiveView websocket at `/live`.
   Elixir come from `.tool-versions`, assets from `mix assets.deploy`. Bumping
   `.tool-versions` changes production; adding `assets/package.json` changes how
   assets are built
+- Gigalixir's build cache restores every file a past build had in `priv/static`,
+  so a file deleted from the repo is still served. After deleting one, run the
+  workflow manually with `clean_build_cache` (a clean build takes longer)
 - Production config is read from environment variables in `config/runtime.exs`
   (`SECRET_KEY_BASE`, `PHX_HOST`, `PHX_SERVER`). A new required variable must be
   set on Gigalixir before pushing the commit that needs it, or the release fails

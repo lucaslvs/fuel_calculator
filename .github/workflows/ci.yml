@@ -17,6 +17,11 @@ on:
   schedule:
     - cron: "17 6 1,15 * *"
   workflow_dispatch:
+    inputs:
+      clean_build_cache:
+        description: Clean Gigalixir's build cache, so files deleted from priv/static stop being served
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -159,10 +164,18 @@ jobs:
             commit --allow-empty -m "chore: keep the Gigalixir app alive"
 
       # Forced: Gigalixir's main may be a keep-alive commit that is not an ancestor of HEAD.
+      # The Phoenix static buildpack restores every file a past build had in priv/static,
+      # so a deleted file stays served until a build runs with a clean cache.
       - name: Push to Gigalixir
         if: env.SKIP_DEPLOY != 'true'
+        env:
+          CLEAN_BUILD_CACHE: ${{ inputs.clean_build_cache == true }}
         run: |
-          git push -f "https://git.gigalixir.com/$APP_NAME.git" HEAD:refs/heads/main
+          clean=()
+          if [ "$CLEAN_BUILD_CACHE" = true ]; then
+            clean=(-c http.extraheader="GIGALIXIR-CLEAN: true")
+          fi
+          git "${clean[@]}" push -f "https://git.gigalixir.com/$APP_NAME.git" HEAD:refs/heads/main
           echo "DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # `git push` returns once the rolling deploy starts, not when it finishes.
