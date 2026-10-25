@@ -919,7 +919,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
             %{"index" => "2"},
             %{"index" => "-1"},
             %{"index" => "abc"},
-            %{"index" => String.duplicate("1", 1000)},
+            # Parsing an integer this long raises a system limit error
+            %{"index" => String.duplicate("1", 1_300_000)},
             %{"index" => 1},
             %{}
           ] do
