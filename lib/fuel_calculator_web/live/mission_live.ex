@@ -60,8 +60,37 @@ defmodule FuelCalculatorWeb.MissionLive do
     end
   end
 
+  # The fix is worked out from the mission on the server; the client only says which
+  # step, by a position of at most two digits (see swap_steps/1)
+  def handle_event("fix_step", %{"index" => index}, socket)
+      when is_binary(index) and byte_size(index) <= 2 do
+    changeset = socket.assigns.form.source
+
+    with {index, ""} when index >= 0 <- Integer.parse(index),
+         {action, planet} <- changeset |> path() |> FlightPath.fixes() |> Enum.at(index) do
+      {:noreply, assign_mission(socket, fixed_params(changeset, index, action, planet))}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   # Events come from the client and may have been crafted
   def handle_event(_event, _params, socket), do: {:noreply, socket}
+
+  # The params of the mission as it is, with the step replaced. Each step keeps the
+  # params it was cast from, so a field the user hasn't touched still shows no error.
+  defp fixed_params(changeset, index, action, planet) do
+    steps =
+      changeset
+      |> Ecto.Changeset.get_embed(:steps, :changeset)
+      |> Enum.map(& &1.params)
+      |> List.update_at(
+        index,
+        &Map.merge(&1, %{"action" => "#{action}", "planet" => "#{planet}"})
+      )
+
+    %{"mass" => changeset.params["mass"], "steps" => steps}
+  end
 
   defp mission_params(mass, path) do
     steps =
@@ -122,7 +151,7 @@ defmodule FuelCalculatorWeb.MissionLive do
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
     mass = valid_mass(changeset)
-    path = changeset |> Ecto.Changeset.get_field(:steps) |> Enum.map(&{&1.action, &1.planet})
+    path = path(changeset)
 
     fuel =
       case Mission.calculate(changeset) do
@@ -138,8 +167,13 @@ defmodule FuelCalculatorWeb.MissionLive do
       missing: Mission.missing(changeset),
       current_example_id: current_example_id(mass, path),
       step_count: length(path),
-      warnings: FlightPath.warnings(path)
+      warnings: FlightPath.warnings(path),
+      fixes: FlightPath.fixes(path)
     )
+  end
+
+  defp path(changeset) do
+    changeset |> Ecto.Changeset.get_field(:steps) |> Enum.map(&{&1.action, &1.planet})
   end
 
   # The example the mission matches, whether it was loaded or typed in, so editing
@@ -196,6 +230,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                 fuel={@fuel}
                 mass={@mass}
                 warnings={@warnings}
+                fixes={@fixes}
                 focus_step={@focus_step}
               >
                 <:spacecraft>

@@ -76,6 +76,49 @@ defmodule FuelCalculator.FlightPathTest do
     end
   end
 
+  describe "fixes/1" do
+    test "launches from the planet of the last landing instead" do
+      assert FlightPath.fixes(launch: :earth, land: :moon, launch: :mars) ==
+               [nil, nil, {:launch, :moon}]
+    end
+
+    test "lands on the planet instead of launching again" do
+      assert FlightPath.fixes(launch: :earth, launch: :moon) == [nil, {:land, :moon}]
+    end
+
+    test "launches from the planet of the last landing instead of landing again" do
+      assert FlightPath.fixes(launch: :earth, land: :moon, land: :mars) ==
+               [nil, nil, {:launch, :moon}]
+    end
+
+    test "has nothing to fix in a path without warnings or with incomplete steps" do
+      assert FlightPath.fixes(launch: :earth, land: :moon, launch: :moon) == [nil, nil, nil]
+      assert FlightPath.fixes([{:launch, :earth}, {nil, :moon}, {:land, nil}]) == [nil, nil, nil]
+      assert FlightPath.fixes([]) == []
+    end
+  end
+
+  describe "fixes/1 properties" do
+    property "a fix makes its step follow the previous one" do
+      check all path <- list_of(step(), min_length: 2, max_length: 8) do
+        for {{action, planet}, index} <- Enum.with_index(FlightPath.fixes(path)) do
+          fixed = List.replace_at(path, index, {action, planet})
+
+          assert Enum.at(FlightPath.warnings(fixed), index) == nil
+        end
+      end
+    end
+
+    property "there is a fix for every warning and only for them" do
+      check all path <- list_of(step(), max_length: 8) do
+        assert Enum.map(FlightPath.fixes(path), &is_nil/1) ==
+                 Enum.map(FlightPath.warnings(path), &is_nil/1)
+      end
+    end
+  end
+
+  defp step, do: tuple({member_of([:launch, :land]), member_of(Planet.all())})
+
   # Launches from each planet and lands on the next one; may stop after a launch
   defp flyable_path(min_planets \\ 1) do
     gen all planets <- list_of(member_of(Planet.all()), min_length: min_planets, max_length: 8),

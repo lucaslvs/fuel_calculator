@@ -122,6 +122,11 @@ defmodule FuelCalculatorWeb.MissionComponents do
     default: [],
     doc: "a warning or nil for each step (see `FuelCalculator.FlightPath.warnings/1`)"
 
+  attr :fixes, :list,
+    default: [],
+    doc:
+      "the step that would replace each step with a warning (see `FuelCalculator.FlightPath.fixes/1`)"
+
   attr :focus_step, :integer, default: nil, doc: "the index of the step that takes the focus"
 
   slot :spacecraft, required: true, doc: "the spacecraft's fields, in the first node"
@@ -166,6 +171,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 detail={@fuel && Enum.at(@fuel.details, step.index)}
                 mass={@mass}
                 warning={Enum.at(@warnings, step.index)}
+                fix={Enum.at(@fixes, step.index)}
                 next_warning={!is_nil(Enum.at(@warnings, step.index + 1))}
                 focus={step.index == @focus_step}
               />
@@ -245,6 +251,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   attr :mass, :integer, default: nil, doc: "the spacecraft mass, or nil while it is invalid"
   attr :warning, :any, default: nil, doc: "why the step can't follow the previous one, or nil"
+  attr :fix, :any, default: nil, doc: "the `{action, planet}` that would follow, or nil"
 
   attr :next_warning, :boolean,
     default: false,
@@ -363,7 +370,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
           </div>
         </div>
         <div>
-          <.step_warning index={@step.index} warning={@warning} />
+          <.step_warning index={@step.index} warning={@warning} fix={@fix} />
           <.step_details
             index={@step.index}
             last={@step.index == @step_count - 1}
@@ -416,6 +423,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   attr :index, :integer, required: true
   attr :warning, :any, default: nil
+  attr :fix, :any, default: nil
 
   # Hidden rather than removed: inserting it would move the details after it, and
   # moving the focused summary drops its focus. The live region around it is always
@@ -424,14 +432,31 @@ defmodule FuelCalculatorWeb.MissionComponents do
   defp step_warning(assigns) do
     ~H"""
     <div aria-live="polite">
-      <p
+      <div
         id={"step-warning-#{@index}"}
         hidden={is_nil(@warning)}
-        class="mb-2 flex items-start gap-2 text-sm"
+        class="mb-2 flex flex-wrap items-start gap-x-3 gap-y-1.5 text-sm"
       >
-        <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
-        <span>{@warning && warning_message(@warning, @index)}</span>
-      </p>
+        <p class="flex items-start gap-2">
+          <.icon name="hero-exclamation-triangle-mini" class="size-5 shrink-0 text-warning" />
+          <span>{@warning && warning_message(@warning, @index)}</span>
+        </p>
+        <%!-- The button stays in place, so the focus moves to the field it changes --%>
+        <.button
+          :if={@fix}
+          id={"fix-step-#{@index}"}
+          type="button"
+          phx-click={
+            "fix_step"
+            |> JS.push(value: %{index: "#{@index}"})
+            |> JS.focus(to: fixed_field(@warning, @fix, @index))
+          }
+          class="btn btn-xs btn-warning"
+        >
+          <.icon name="hero-wrench-screwdriver-micro" class="size-3.5" />
+          {fix_label(@fix)}
+        </.button>
+      </div>
     </div>
     """
   end
@@ -446,6 +471,15 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp warning_message(:launch_twice, index),
     do: "Launches again without landing after step #{index}."
+
+  defp fix_label({action, planet}), do: "#{action_on(action, planet)} instead"
+
+  defp fixed_field(warning, {action, _planet}, index) do
+    case warning_field(warning) do
+      :planet -> "#mission_steps_#{index}_planet"
+      :action -> "#mission_steps_#{index}_action_#{action}"
+    end
+  end
 
   # The field to change so the step can follow the previous one
   defp warning_field({:launch_elsewhere, _planet, _landed_on}), do: :planet

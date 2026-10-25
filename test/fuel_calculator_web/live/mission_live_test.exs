@@ -763,6 +763,105 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     end
   end
 
+  describe "quick fix" do
+    test "is offered for each warning, named after the step it makes", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      assert has_element?(
+               view,
+               "#step-warning-2 #fix-step-2",
+               exactly("Launch from the Moon instead")
+             )
+
+      assert has_element?(
+               view,
+               "#step-warning-4 #fix-step-4",
+               exactly("Launch from Earth instead")
+             )
+
+      for index <- [0, 1, 3], do: refute(has_element?(view, "#fix-step-#{index}"))
+
+      change(view, mission(28_801, launch: :earth, launch: :moon))
+      assert has_element?(view, "#fix-step-1", exactly("Land on the Moon instead"))
+    end
+
+    test "changes the step so it follows the previous one", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, land: :moon, launch: :mars, land: :earth))
+      view |> element("#fix-step-2") |> render_click()
+
+      assert has_element?(
+               view,
+               "#step-2 [data-role=step-title]",
+               exactly("3 · Launch from the Moon")
+             )
+
+      refute has_element?(view, "[id^=step-warning-]:not([hidden])")
+      assert has_element?(view, "#total-fuel", exactly("51,898 kg"))
+
+      change(view, mission(28_801, launch: :earth, land: :moon, land: :earth))
+      view |> element("#fix-step-2") |> render_click()
+
+      assert has_element?(
+               view,
+               "#step-2 [data-role=step-title]",
+               exactly("3 · Launch from the Moon")
+             )
+    end
+
+    test "focuses the field it changes", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, @inconsistent_path))
+
+      assert focus_target(view, "#fix-step-2") == "#mission_steps_2_planet"
+      assert focus_target(view, "#fix-step-4") == "#mission_steps_4_action_launch"
+    end
+
+    test "keeps the rest of the mission as it is", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      # An invalid mass and a blank step added after the warning
+      change(view, %{
+        mission("abc", launch: :earth, launch: :moon)
+        | "steps_sort" => ["0", "1", "new"]
+      })
+
+      assert has_element?(view, "#step-2")
+
+      view |> element("#fix-step-1") |> render_click()
+
+      assert has_element?(view, "#step-1 [data-role=step-title]", exactly("2 · Land on the Moon"))
+      assert has_element?(view, "#mission_mass[value=abc]")
+      assert has_element?(view, ".input-error #mission_mass")
+      assert has_element?(view, "#step-2")
+      refute has_element?(view, "#step-2 .select-error, #step-2 [aria-invalid]")
+    end
+
+    test "ignores a step without a warning or a crafted index", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, launch: :earth, launch: :moon))
+      html = render(view)
+
+      for params <- [
+            %{"index" => "0"},
+            %{"index" => "2"},
+            %{"index" => "-1"},
+            %{"index" => "abc"},
+            %{"index" => String.duplicate("1", 1000)},
+            %{"index" => 1},
+            %{}
+          ] do
+        render_hook(view, "fix_step", params)
+        assert render(view) == html, inspect(params)
+      end
+    end
+  end
+
   describe "validation" do
     test "hides errors of steps the user has not touched", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
