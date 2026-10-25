@@ -19,34 +19,34 @@
 }
 
 /* daisyUI theme plugin.
-  Two cool blue themes with an "electric" blue primary. Changing a color means measuring the
-  contrast again (WCAG AA). Build your own at: https://daisyui.com/theme-generator/ */
+  The IBM Carbon palette (v11 tokens, Gray 100 and White themes), with the hex values of
+  @carbon/colors. Changing a color means measuring the contrast again (WCAG AA). */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(19% 0.045 272);
-  --color-base-200: oklch(16% 0.043 272);
-  --color-base-300: oklch(13% 0.041 272);
-  --color-base-content: oklch(93% 0.012 272);
+  --color-base-100: #161616;
+  --color-base-200: #262626;
+  --color-base-300: #393939;
+  --color-base-content: #f4f4f4;
   /* The accent colors are light, with dark content, so text on either side meets WCAG AA */
-  --color-primary: oklch(72% 0.17 258);
-  --color-primary-content: oklch(20% 0.045 272);
-  --color-secondary: oklch(72% 0.13 290);
-  --color-secondary-content: oklch(20% 0.045 272);
-  --color-accent: oklch(82% 0.12 210);
-  --color-accent-content: oklch(20% 0.045 272);
-  --color-neutral: oklch(30% 0.05 272);
-  --color-neutral-content: oklch(93% 0.012 272);
-  --color-info: oklch(72% 0.13 240);
-  --color-info-content: oklch(20% 0.045 272);
-  --color-success: oklch(74% 0.14 165);
-  --color-success-content: oklch(20% 0.045 272);
-  --color-warning: oklch(80% 0.15 85);
-  --color-warning-content: oklch(20% 0.045 272);
-  --color-error: oklch(70% 0.19 22);
-  --color-error-content: oklch(20% 0.045 272);
+  --color-primary: #78a9ff;
+  --color-primary-content: #161616;
+  --color-secondary: #a56eff;
+  --color-secondary-content: #161616;
+  --color-accent: #33b1ff;
+  --color-accent-content: #161616;
+  --color-neutral: #393939;
+  --color-neutral-content: #f4f4f4;
+  --color-info: #4589ff;
+  --color-info-content: #161616;
+  --color-success: #42be65;
+  --color-success-content: #161616;
+  --color-warning: #f1c21b;
+  --color-warning-content: #161616;
+  --color-error: #fa4d56;
+  --color-error-content: #161616;
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 1rem;
@@ -62,28 +62,28 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(99% 0.004 262);
-  --color-base-200: oklch(96.5% 0.01 262);
-  --color-base-300: oklch(92% 0.018 262);
+  --color-base-100: #ffffff;
+  --color-base-200: #f4f4f4;
+  --color-base-300: #e0e0e0;
   /* Dark enough for .label (60% opacity) on base-100 to meet WCAG AA: don't lighten it */
-  --color-base-content: oklch(20% 0.03 262);
+  --color-base-content: #161616;
   /* Primary and error are dark enough for text on and around them to meet WCAG AA */
-  --color-primary: oklch(50% 0.21 262);
-  --color-primary-content: oklch(98% 0.01 262);
-  --color-secondary: oklch(45% 0.12 280);
-  --color-secondary-content: oklch(98% 0.01 262);
-  --color-accent: oklch(55% 0.13 215);
-  --color-accent-content: oklch(98% 0.01 262);
-  --color-neutral: oklch(30% 0.035 262);
-  --color-neutral-content: oklch(97% 0.005 262);
-  --color-info: oklch(55% 0.15 245);
-  --color-info-content: oklch(98% 0.01 245);
-  --color-success: oklch(55% 0.13 165);
-  --color-success-content: oklch(98% 0.01 165);
-  --color-warning: oklch(72% 0.16 70);
-  --color-warning-content: oklch(25% 0.05 70);
-  --color-error: oklch(55% 0.22 25);
-  --color-error-content: oklch(98% 0.01 25);
+  --color-primary: #0f62fe;
+  --color-primary-content: #ffffff;
+  --color-secondary: #8a3ffc;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0072c3;
+  --color-accent-content: #ffffff;
+  --color-neutral: #393939;
+  --color-neutral-content: #f4f4f4;
+  --color-info: #0043ce;
+  --color-info-content: #ffffff;
+  --color-success: #198038;
+  --color-success-content: #ffffff;
+  --color-warning: #f1c21b;
+  --color-warning-content: #161616;
+  --color-error: #da1e28;
+  --color-error-content: #ffffff;
   --radius-selector: 0.5rem;
   --radius-field: 0.5rem;
   --radius-box: 1rem;
