@@ -53,10 +53,12 @@ defmodule FuelCalculatorWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # The page is a LiveView, whose socket is dispatched before these plugs, and no route
+  # takes a request body, so only small forms are parsed and other bodies aren't read
   plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
+    parsers: [:urlencoded],
     pass: ["*/*"],
-    json_decoder: Phoenix.json_library()
+    length: 65_536
 
   plug Plug.MethodOverride
   plug Plug.Head
