@@ -612,7 +612,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders the mission's total fuel or, while the mission is invalid, what it still
-  lacks, with a button that focuses the first missing field. Screen readers announce
+  lacks. Screen readers announce
   the total whenever it changes. When steps can't follow the previous one, it says so,
   since the total covers the steps as entered.
 
@@ -805,7 +805,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
     ~H"""
     <div
       id="fuel-pending"
-      class="stat-desc mt-1 flex flex-col items-start gap-0.5 text-sm whitespace-normal text-base-content/80 max-lg:hidden"
+      class="stat-desc mt-1 text-sm whitespace-normal text-base-content/80 max-lg:hidden"
     >
       <%= case @missing do %>
         <% [first | rest] -> %>
@@ -814,14 +814,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
               rest
             )} more</span>
           </p>
-          <.button
-            id="fuel-pending-go"
-            type="button"
-            phx-click={JS.focus(to: missing_field(first))}
-            class="link link-primary link-hover inline-flex items-center gap-1 text-sm font-medium"
-          >
-            {missing_go(first)} <.icon name="hero-arrow-right-micro" class="size-4" />
-          </.button>
         <% [] -> %>
           <p>Fix the errors in the flight path</p>
       <% end %>
@@ -837,17 +829,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp with_article(:action), do: "an action"
   defp with_article(:planet), do: "a planet"
-
-  defp missing_go({:mass, _reason}), do: "Go to the mass"
-  defp missing_go({:step, index, _fields}), do: "Go to step #{index + 1}"
-
-  # The ids of the mission form's fields; an action is focused by its first radio
-  defp missing_field({:mass, _reason}), do: "#mission_mass"
-
-  defp missing_field({:step, index, [:action | _fields]}),
-    do: "#mission_steps_#{index}_action_#{hd(Fuel.actions())}"
-
-  defp missing_field({:step, index, [:planet]}), do: "#mission_steps_#{index}_planet"
 
   defp missing_label([]), do: "Complete the mission"
   defp missing_label([first]), do: short_missing(first)

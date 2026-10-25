@@ -279,8 +279,14 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       assert has_element?(view, "#fuel-pending p", exactly("Enter the spacecraft mass · 1 more"))
-      assert has_element?(view, "#fuel-pending-go", "Go to the mass")
-      assert focus_target(view, "#fuel-pending-go") == "#mission_mass"
+    end
+
+    # The missing field is already in sight, at the end of the timeline or at its start
+    test "offers no button to the missing field", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      assert has_element?(view, "#fuel-pending")
+      refute has_element?(view, "#fuel-pending button")
     end
 
     test "asks for a valid mass", %{conn: conn} do
@@ -289,28 +295,22 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(0, land: :earth))
 
       assert has_element?(view, "#fuel-pending p", exactly("Enter a valid spacecraft mass"))
-      assert focus_target(view, "#fuel-pending-go") == "#mission_mass"
     end
 
     test "asks for what an incomplete step lacks", %{conn: conn} do
       cases = [
-        {[launch: :earth, land: nil], "Choose a planet for step 2", "Go to step 2",
-         "#mission_steps_1_planet"},
-        {[{nil, :moon}], "Choose an action for step 1", "Go to step 1",
-         "#mission_steps_0_action_launch"},
+        {[launch: :earth, land: nil], "Choose a planet for step 2"},
+        {[{nil, :moon}], "Choose an action for step 1"},
         {[launch: :earth, land: :moon, launch: :moon, land: :earth] ++ [{nil, nil}],
-         "Choose an action and a planet for step 5", "Go to step 5",
-         "#mission_steps_4_action_launch"}
+         "Choose an action and a planet for step 5"}
       ]
 
       # A new view each time: a change keeps the steps already in the page
-      for {path, sentence, go, target} <- cases do
+      for {path, sentence} <- cases do
         {:ok, view, _html} = live(conn, ~p"/")
         change(view, mission(28_801, path))
 
         assert has_element?(view, "#fuel-pending p", exactly(sentence))
-        assert has_element?(view, "#fuel-pending-go", exactly(go))
-        assert focus_target(view, "#fuel-pending-go") == target
       end
     end
 
@@ -1188,7 +1188,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#steps-errors", "should have at most 15 item(s)")
       assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       assert has_element?(view, "#fuel-pending p", exactly("Fix the errors in the flight path"))
-      refute has_element?(view, "#fuel-pending-go")
 
       change(view, mission(28_801, land: :earth))
 
