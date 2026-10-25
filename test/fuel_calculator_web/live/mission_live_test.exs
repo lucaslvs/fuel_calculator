@@ -1301,6 +1301,18 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0 [data-role=step-icon] .hero-arrow-up-right")
       assert has_element?(view, "#step-1 [data-role=step-icon] .hero-arrow-down-right")
     end
+
+    test "colors the spacecraft once its mass is valid", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute has_element?(view, "[data-role=spacecraft-icon].bg-primary")
+
+      change(view, %{"mass" => "28801"})
+      assert has_element?(view, "[data-role=spacecraft-icon].bg-primary")
+
+      change(view, %{"mass" => "0"})
+      refute has_element?(view, "[data-role=spacecraft-icon].bg-primary")
+    end
   end
 
   defp focus_target(view, button) do

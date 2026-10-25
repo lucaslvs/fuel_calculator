@@ -147,7 +147,17 @@ defmodule FuelCalculatorWeb.MissionComponents do
       <ul class="timeline timeline-vertical timeline-compact mt-3 w-full" role="none">
         <li data-role="spacecraft" class="w-full [--timeline-row-start:0]" role="none">
           <div class="timeline-middle">
-            <span class="grid size-8 place-items-center rounded-full bg-base-200 text-base-content">
+            <%!-- In the primary color once the mass is valid, as a step is once its action is chosen --%>
+            <span
+              data-role="spacecraft-icon"
+              class={[
+                "grid size-8 place-items-center rounded-full",
+                if(@mass,
+                  do: "bg-primary text-primary-content",
+                  else: "bg-base-200 text-base-content"
+                )
+              ]}
+            >
               <.icon name="hero-rocket-launch" class="size-4" />
             </span>
           </div>
