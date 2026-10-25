@@ -141,7 +141,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       change(view, mission(1_000_000_000_000, launch: :earth, land: :earth))
 
       assert has_element?(view, "#total-fuel", exactly("1,513,973,496,138 kg"))
-      assert has_element?(view, "#step-fuel-0", exactly("1,035,490,598,312 kg"))
+      assert has_element?(view, "#step-details-0 summary", "How 1,035,490,598,312 kg is")
     end
 
     test "is announced to screen readers when it changes", %{conn: conn} do
@@ -416,33 +416,40 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   describe "step fuel" do
-    test "is shown for each step of a valid mission", %{conn: conn} do
+    test "is in the summary of each step's details for a valid mission", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, @apollo))
 
       for {fuel, index} <- Enum.with_index(["32,988 kg", "2,462 kg", "3,001 kg", "13,447 kg"]) do
-        assert has_element?(view, "#step-#{index} #step-fuel-#{index}", exactly(fuel))
+        assert has_element?(
+                 view,
+                 "#step-#{index} #step-details-#{index} summary",
+                 "How #{fuel} is"
+               )
       end
     end
 
-    test "is hidden while the mission is invalid", %{conn: conn} do
+    test "is not shown next to the step's title", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, mission(28_801, land: :moon, land: :earth))
-      assert has_element?(view, "#step-fuel-1")
+      change(view, mission(28_801, @apollo))
 
-      change(view, mission("", land: :moon, land: :earth))
-
+      refute has_element?(view, "#step-0 [data-role=step-title]", "kg")
       refute has_element?(view, "[id^=step-fuel-]")
     end
 
-    test "is hidden while a step is incomplete", %{conn: conn} do
+    test "is left out while the mission is invalid", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      change(view, mission(28_801, land: :moon, land: nil))
+      change(view, mission(28_801, land: :moon, land: :earth))
+      refute has_element?(view, "#step-details-1 summary", "How the fuel is calculated")
 
-      refute has_element?(view, "[id^=step-fuel-]")
+      change(view, mission("", land: :moon, land: :earth))
+      assert has_element?(view, "#step-details-1 summary", "How the fuel is calculated")
+
+      change(view, mission(28_801, land: :moon, land: nil))
+      assert has_element?(view, "#step-details-0 summary", "How the fuel is calculated")
     end
   end
 
@@ -1063,8 +1070,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, land: :earth, launch: :moon))
       assert has_element?(view, "#total-fuel", exactly("16,436 kg"))
-      assert has_element?(view, "#step-0 #step-fuel-0", exactly("14,412 kg"))
-      assert has_element?(view, "#step-1 #step-fuel-1", exactly("2,024 kg"))
+      assert has_element?(view, "#step-0 #step-details-0 summary", "How 14,412 kg is")
+      assert has_element?(view, "#step-1 #step-details-1 summary", "How 2,024 kg is")
 
       change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", "0"))
 
@@ -1072,8 +1079,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#step-0 option[value='moon'][selected]")
       assert has_element?(view, "#step-1 input[value='land'][checked]")
       assert has_element?(view, "#step-1 option[value='earth'][selected]")
-      assert has_element?(view, "#step-0 #step-fuel-0", exactly("3,001 kg"))
-      assert has_element?(view, "#step-1 #step-fuel-1", exactly("13,447 kg"))
+      assert has_element?(view, "#step-0 #step-details-0 summary", "How 3,001 kg is")
+      assert has_element?(view, "#step-1 #step-details-1 summary", "How 13,447 kg is")
       assert has_element?(view, "#total-fuel", exactly("16,448 kg"))
     end
 

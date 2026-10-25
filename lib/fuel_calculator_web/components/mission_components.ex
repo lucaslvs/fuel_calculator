@@ -308,18 +308,10 @@ defmodule FuelCalculatorWeb.MissionComponents do
         </span>
       </div>
       <div class="timeline-end ms-3 mb-5 w-[calc(100%-0.75rem)] min-w-0">
-        <div class="flex items-baseline justify-between gap-2 pt-1">
-          <p data-role="step-title" class="text-sm font-semibold">
-            {@step.index + 1} · {step_title(@chosen)}
-          </p>
-          <span
-            :if={@detail}
-            id={"step-fuel-#{@step.index}"}
-            class="font-semibold whitespace-nowrap tabular-nums"
-          >
-            {format_kg(@detail.fuel)}
-          </span>
-        </div>
+        <%!-- The step's fuel is in its details' summary and in "Fuel by step" --%>
+        <p data-role="step-title" class="pt-1 text-sm font-semibold">
+          {@step.index + 1} · {step_title(@chosen)}
+        </p>
         <div class="mt-2 flex flex-wrap items-start gap-x-2 gap-y-2">
           <%!-- The wrapper keeps the move buttons in place: inputs_for keeps a step's input
                ids when it moves, so a patch moves the radios to another row, and without
