@@ -12,6 +12,7 @@ defmodule FuelCalculator.Mission do
 
   alias FuelCalculator.Fuel
   alias FuelCalculator.Mission.Step
+  alias FuelCalculator.Planet
 
   # Bounds for user input. The fuel is calculated with integers, so it is exact
   # for any mass and path.
@@ -140,6 +141,24 @@ defmodule FuelCalculator.Mission do
   end
 
   @doc """
+  Returns the flight path of a `mission`, or of a mission changeset as entered so
+  far: the action and planet of each step, with `nil` for one not chosen or invalid.
+
+  ## Examples
+
+      iex> alias FuelCalculator.Mission
+      iex> Mission.changeset(%Mission{}, %{
+      ...>   "steps" => [%{"action" => "launch", "planet" => "earth"}, %{"action" => "land"}]
+      ...> })
+      ...> |> Mission.path()
+      [{:launch, :earth}, {:land, nil}]
+
+  """
+  @spec path(t() | Ecto.Changeset.t()) :: [{Fuel.action() | nil, Planet.t() | nil}]
+  def path(%Ecto.Changeset{} = changeset), do: changeset |> apply_changes() |> path()
+  def path(%__MODULE__{steps: steps}), do: Enum.map(steps, &{&1.action, &1.planet})
+
+  @doc """
   Returns the fuel required to fly a valid `mission`: the total and, for each
   step in the order of the flight path, its fuel and how it is calculated (see
   `FuelCalculator.Fuel.explain/2`).
@@ -161,8 +180,8 @@ defmodule FuelCalculator.Mission do
 
   """
   @spec fuel(t()) :: fuel()
-  def fuel(%__MODULE__{mass: mass, steps: steps}) do
-    details = Fuel.explain(mass, Enum.map(steps, &{&1.action, &1.planet}))
+  def fuel(%__MODULE__{mass: mass} = mission) do
+    details = Fuel.explain(mass, path(mission))
     %{total: Enum.sum_by(details, & &1.fuel), details: details}
   end
 end

@@ -68,7 +68,7 @@ defmodule FuelCalculatorWeb.MissionLive do
     changeset = socket.assigns.form.source
 
     with {index, ""} when index >= 0 <- Integer.parse(index),
-         {action, planet} <- changeset |> path() |> FlightPath.fixes() |> Enum.at(index) do
+         {action, planet} <- changeset |> Mission.path() |> FlightPath.fixes() |> Enum.at(index) do
       {:noreply, assign_mission(socket, fixed_params(changeset, index, action, planet))}
     else
       _ -> {:noreply, socket}
@@ -153,7 +153,7 @@ defmodule FuelCalculatorWeb.MissionLive do
   defp assign_mission(socket, params) do
     changeset = Mission.changeset(%Mission{}, params)
     mass = valid_mass(changeset)
-    path = path(changeset)
+    path = Mission.path(changeset)
 
     # An empty flight path needs no fuel, but the page asks for a first step instead of
     # showing a total of 0 kg
@@ -188,10 +188,6 @@ defmodule FuelCalculatorWeb.MissionLive do
   defp next_step?(nil, _path), do: false
   defp next_step?(_mass, []), do: true
   defp next_step?(_mass, path), do: path |> List.last() |> Tuple.to_list() |> Enum.all?()
-
-  defp path(changeset) do
-    changeset |> Ecto.Changeset.get_field(:steps) |> Enum.map(&{&1.action, &1.planet})
-  end
 
   # The example the mission matches, whether it was loaded or typed in, so editing
   # any of its values unmarks it
