@@ -132,13 +132,21 @@ body {
    doesn't visibly repeat. The first layer dims the stars behind the content column, so no
    star sits behind text. */
 body {
-  background-image:
-    radial-gradient(ellipse 40rem 85% at 50% 40%, color-mix(in oklab, var(--color-base-100) 88%, transparent) 0 60%, transparent 100%),
-    url("/images/stars-near.svg"),
-    url("/images/stars-far.svg");
+  --sky-dim: radial-gradient(ellipse 40rem 85% at 50% 40%, color-mix(in oklab, var(--color-base-100) 88%, transparent) 0 60%, transparent 100%);
+  background-image: var(--sky-dim), url("/images/stars-near.svg"), url("/images/stars-far.svg");
   background-size: 100% 100%, 1400px 1000px, 997px 811px;
   background-repeat: no-repeat, repeat, repeat;
   background-attachment: fixed;
+}
+
+/* Below lg the content column is the whole screen, but only the header and the hero sit on
+   the sky: everything else is in opaque cards. So the dimming covers just the top of the
+   page and scrolls with it. */
+@media (width < 64rem) {
+  body {
+    --sky-dim: linear-gradient(color-mix(in oklab, var(--color-base-100) 88%, transparent) 0 18rem, transparent 24rem);
+    background-attachment: scroll, fixed, fixed;
+  }
 }
 
 /* Nebula: fractal noise masks painted in the theme colors. They sit under the body's
