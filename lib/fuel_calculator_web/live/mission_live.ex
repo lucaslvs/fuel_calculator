@@ -47,7 +47,7 @@ defmodule FuelCalculatorWeb.MissionLive do
 
   @impl true
   def handle_event("validate", %{"mission" => %{} = params}, socket) do
-    params = params |> form_params() |> swap_steps()
+    params = form_params(params)
 
     {:noreply, socket |> assign_mission(params) |> assign(focus_step: added_step(params))}
   end
@@ -60,7 +60,9 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   # The fix is worked out from the mission on the server; the client only says which
-  # step, by a position of at most two digits (see swap_steps/1)
+  # step, by its position. Longpoll accepts much larger events than the websocket, and
+  # parsing a long enough number raises, so the position is checked to have at most two
+  # digits first.
   def handle_event("fix_step", %{"index" => index}, socket)
       when is_binary(index) and byte_size(index) <= 2 do
     changeset = socket.assigns.form.source
@@ -122,24 +124,6 @@ defmodule FuelCalculatorWeb.MissionLive do
   defp strings_only(params, except) do
     Map.filter(params, fn {key, value} -> is_binary(value) or key in except end)
   end
-
-  # The move buttons send steps_swap with the position of the step to swap with
-  # the next one, in the same change event as the steps_sort they reorder. Longpoll
-  # accepts much larger events than the websocket, and parsing a long enough
-  # number raises, so the position is checked to have at most two digits first.
-  defp swap_steps(%{"steps_swap" => swap, "steps_sort" => sort} = params)
-       when is_binary(swap) and byte_size(swap) <= 2 and is_list(sort) do
-    case Integer.parse(swap) do
-      {position, ""} when position >= 0 and position < length(sort) - 1 ->
-        {before, [step, next | rest]} = Enum.split(sort, position)
-        %{params | "steps_sort" => before ++ [next, step | rest]}
-
-      _ ->
-        params
-    end
-  end
-
-  defp swap_steps(params), do: params
 
   # "Add step" sends "new" in steps_sort, at the position the new step takes
   defp added_step(%{"steps_sort" => sort}) when is_list(sort),

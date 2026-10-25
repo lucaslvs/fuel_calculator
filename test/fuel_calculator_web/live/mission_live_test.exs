@@ -977,7 +977,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
             %{"mass" => %{"x" => "1"}, "steps" => [%{"action" => ["x"]}]},
             %{
               "mass" => ["28801"],
-              "steps_swap" => %{},
               "steps" => %{
                 "0" => %{"_persistent_id" => %{}, "action" => %{"x" => "1"}, "planet" => [%{}]}
               }
@@ -1037,24 +1036,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert focus_target(view, "#remove-step-1") == "#remove-step-0"
       assert focus_target(view, "#remove-step-3") == "#remove-step-2"
     end
-
-    test "follows the moved step", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      load_example(view, "apollo-11")
-
-      assert focus_target(view, "#move-step-up-2") == "#move-step-up-1"
-      assert focus_target(view, "#move-step-down-1") == "#move-step-down-2"
-      # A step moved to an end gets the button that is still enabled
-      assert focus_target(view, "#move-step-up-1") == "#move-step-down-0"
-      assert focus_target(view, "#move-step-down-2") == "#move-step-up-3"
-    end
   end
 
-  # The add, move and remove buttons trigger a form change through JS, which
-  # LiveViewTest does not run, so these tests send the steps_sort, steps_swap and
-  # steps_drop values the buttons add to the form. Moved steps are checked by row,
-  # since inputs_for keeps each step's input ids when it changes position.
+  # The add and remove buttons trigger a form change through JS, which LiveViewTest
+  # does not run, so these tests send the steps_sort and steps_drop values the
+  # buttons add to the form.
   describe "flight path" do
     test "adds a blank step and keeps the entered values", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
@@ -1066,6 +1052,15 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#mission_steps_0_planet option[value='earth'][selected]")
       assert has_element?(view, "#step-1")
       refute has_element?(view, "#step-1 option[selected], #step-1 input[checked]")
+    end
+
+    test "offers no buttons to move a step", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      change(view, mission(28_801, land: :earth, launch: :moon))
+
+      assert has_element?(view, "#remove-step-1")
+      refute has_element?(view, "[id^=move-step-]")
     end
 
     test "wires Add step and the remove buttons to steps_sort and steps_drop", %{conn: conn} do
@@ -1109,111 +1104,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#empty-path")
     end
 
-    test "moves a step down", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      change(view, mission(28_801, land: :earth, launch: :moon))
-      assert has_element?(view, "#total-fuel", exactly("16,436 kg"))
-      assert has_element?(view, "#step-0 #step-details-0 summary", "How 14,412 kg is")
-      assert has_element?(view, "#step-1 #step-details-1 summary", "How 2,024 kg is")
-
-      change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", "0"))
-
-      assert has_element?(view, "#step-0 input[value='launch'][checked]")
-      assert has_element?(view, "#step-0 option[value='moon'][selected]")
-      assert has_element?(view, "#step-1 input[value='land'][checked]")
-      assert has_element?(view, "#step-1 option[value='earth'][selected]")
-      assert has_element?(view, "#step-0 #step-details-0 summary", "How 3,001 kg is")
-      assert has_element?(view, "#step-1 #step-details-1 summary", "How 13,447 kg is")
-      assert has_element?(view, "#total-fuel", exactly("16,448 kg"))
-    end
-
-    test "ignores a move outside the flight path", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      for swap <- ["-1", "1", "2", "abc", "0.5", ""] do
-        change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", swap))
-
-        assert has_element?(view, "#step-0 input[value='land'][checked]"),
-               "steps_swap #{inspect(swap)} moved a step"
-
-        assert has_element?(view, "#step-1 input[value='launch'][checked]"),
-               "steps_swap #{inspect(swap)} moved a step"
-      end
-    end
-
     # Parsing an integer this long raises a system limit error
-    test "ignores a move position too long to be a step", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      swap = String.duplicate("1", 1_300_000)
-      change(view, Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", swap))
-
-      assert has_element?(view, "#step-0 input[value='land'][checked]")
-      assert has_element?(view, "#step-1 input[value='launch'][checked]")
-    end
-
     # render_hook sends the params as they are, without the form's inputs
-    test "ignores a move that is not a single position or has no order", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      for params <- [
-            Map.put(mission(28_801, land: :earth, launch: :moon), "steps_swap", ["0"]),
-            mission(28_801, land: :earth, launch: :moon)
-            |> Map.delete("steps_sort")
-            |> Map.put("steps_swap", "0")
-          ] do
-        render_hook(view, "validate", %{"mission" => params})
-
-        assert has_element?(view, "#step-0 input[value='land'][checked]"),
-               "#{inspect(params)} moved a step"
-
-        assert has_element?(view, "#step-1 input[value='launch'][checked]"),
-               "#{inspect(params)} moved a step"
-      end
-    end
-
-    test "wires the move buttons to the position of the upper step", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      change(view, mission(28_801, land: :earth, launch: :moon, land: :moon))
-
-      assert has_element?(view, "#move-step-up-1[name='mission[steps_swap]'][value='0']")
-      assert has_element?(view, "#move-step-down-1[name='mission[steps_swap]'][value='1']")
-      assert has_element?(view, "#move-step-up-2[value='1']")
-      assert has_element?(view, "#move-step-down-0[value='0']")
-    end
-
-    test "moves a step without showing errors on fields the user has not touched", %{
-      conn: conn
-    } do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      change(view, %{
-        "mass" => "28801",
-        "steps_sort" => ["0", "1"],
-        "steps_swap" => "0",
-        "steps" => %{
-          "0" => %{"action" => "land", "planet" => "earth"},
-          "1" => %{"_unused_action" => "", "action" => "", "_unused_planet" => "", "planet" => ""}
-        }
-      })
-
-      assert has_element?(view, "#step-1 input[value='land'][checked]")
-      refute has_element?(view, ".input-error, .select-error, [aria-invalid]")
-    end
-
-    test "disables moving the first step up and the last step down", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      change(view, mission(28_801, land: :earth, launch: :moon))
-
-      assert has_element?(view, "#move-step-up-0[disabled]")
-      refute has_element?(view, "#move-step-down-0[disabled]")
-      refute has_element?(view, "#move-step-up-1[disabled]")
-      assert has_element?(view, "#move-step-down-1[disabled]")
-    end
-
     test "counts the steps left only close to the limit", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 

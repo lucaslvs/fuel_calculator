@@ -4,7 +4,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
   summary.
 
   The flight path components render inside `FuelCalculatorWeb.MissionLive`'s form and
-  send its `steps_sort`, `steps_drop` and `steps_swap` params.
+  send its `steps_sort` and `steps_drop` params.
   """
 
   use FuelCalculatorWeb, :html
@@ -252,13 +252,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders a step of the flight path as a timeline item: an icon of its action, a title
-  with its number, action and planet, its fuel, its action and planet, the buttons that
-  move and remove it, a warning when it can't follow the previous step, and how its fuel
-  is calculated.
+  with its number, action and planet, its fuel, its action and planet, the button that
+  removes it, a warning when it can't follow the previous step, and how its fuel is
+  calculated.
 
-  Moving or removing a step re-renders the rows by position, so the buttons also move
-  the focus to the one that keeps the user's place, which exists before and after the
-  change: the moved step's button, or the previous step's remove button.
+  Removing a step re-renders the rows by position, so the button also moves the focus
+  to the one that keeps the user's place, which exists before and after the change:
+  the previous step's remove button.
   """
   attr :step, Phoenix.HTML.Form, required: true, doc: "the step's form, from `inputs_for`"
   attr :step_count, :integer, required: true
@@ -316,11 +316,8 @@ defmodule FuelCalculatorWeb.MissionComponents do
           {@step.index + 1} · {step_title(@chosen)}
         </p>
         <div class="mt-2 flex flex-wrap items-start gap-x-2 gap-y-2">
-          <%!-- The wrapper keeps the move buttons in place: inputs_for keeps a step's input
-               ids when it moves, so a patch moves the radios to another row, and without
-               it the buttons next to them would move too, dropping their focus.
-               With the 4px the select's fieldset adds above it, the paddings center the
-               36px action group, the select and the buttons on the same line. --%>
+          <%!-- With the 4px the select's fieldset adds above it, the paddings center the
+               36px action group, the select and the remove button on the same line. --%>
           <div class="flex-none pt-0.5">
             <.action_toggle
               field={@step[:action]}
@@ -344,30 +341,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
             />
           </div>
           <div class="flex items-center pt-1">
-            <.button
-              id={"move-step-up-#{@step.index}"}
-              type="button"
-              name="mission[steps_swap]"
-              value={@step.index - 1}
-              phx-click={change_and_focus(move_up_focus(@step.index))}
-              disabled={@step.index == 0}
-              class="btn btn-ghost btn-sm btn-square text-base-content/70"
-              aria-label={"Move step #{@step.index + 1} up"}
-            >
-              <.icon name="hero-chevron-up" class="size-4" />
-            </.button>
-            <.button
-              id={"move-step-down-#{@step.index}"}
-              type="button"
-              name="mission[steps_swap]"
-              value={@step.index}
-              phx-click={change_and_focus(move_down_focus(@step.index, @step_count))}
-              disabled={@step.index == @step_count - 1}
-              class="btn btn-ghost btn-sm btn-square text-base-content/70"
-              aria-label={"Move step #{@step.index + 1} down"}
-            >
-              <.icon name="hero-chevron-down" class="size-4" />
-            </.button>
             <.button
               id={"remove-step-#{@step.index}"}
               type="button"
@@ -421,13 +394,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp change_and_focus(nil), do: JS.dispatch("change")
   defp change_and_focus(selector), do: "change" |> JS.dispatch() |> JS.focus(to: selector)
-
-  # The first step's up button and the last one's down button are disabled
-  defp move_up_focus(index) when index > 1, do: "#move-step-up-#{index - 1}"
-  defp move_up_focus(_index), do: "#move-step-down-0"
-
-  defp move_down_focus(index, count) when index < count - 2, do: "#move-step-down-#{index + 1}"
-  defp move_down_focus(_index, count), do: "#move-step-up-#{count - 1}"
 
   defp remove_focus(0, 1), do: "#add-step"
   defp remove_focus(0, _count), do: nil

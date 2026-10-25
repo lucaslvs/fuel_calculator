@@ -71,7 +71,7 @@ and fails when a Hex dependency is retired or has a security advisory
 ### LiveView
 
 - A single LiveView at `/` renders the calculator and needs no parameters.
-- Steps are added, removed and reordered through Ecto's `sort_param` and
+- Steps are added and removed through Ecto's `sort_param` and
   `drop_param` with `<.inputs_for>`: the form params are the only state, and
   the only custom JavaScript is a colocated hook that groups the mass digits as
   they are typed.
