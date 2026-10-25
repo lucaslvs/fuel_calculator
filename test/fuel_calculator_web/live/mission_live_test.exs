@@ -276,10 +276,10 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   describe "pending total" do
-    test "tells the first thing the mission is missing and how many more", %{conn: conn} do
+    test "tells only the first thing the mission is missing", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert has_element?(view, "#fuel-pending p", exactly("Enter the spacecraft mass · 1 more"))
+      assert has_element?(view, "#fuel-pending p", exactly("Enter the spacecraft mass"))
     end
 
     # The missing field is already in sight, at the end of the timeline or at its start
@@ -297,7 +297,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#total-fuel", exactly("Not calculated yet"))
       assert has_element?(view, "#fuel-pending p", exactly("Add the first step"))
-      assert has_element?(view, "#fuel-summary-steps", exactly("First step"))
     end
 
     test "asks for a valid mass", %{conn: conn} do
@@ -334,16 +333,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#fuel-summary .stat-desc", "Includes the fuel to carry the fuel")
     end
 
-    test "tells what is missing in the bar below lg", %{conn: conn} do
+    # Below lg too: the bar shows the same sentence, with nothing in place of the steps
+    test "tells what is missing on every screen", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
-      assert has_element?(view, "#fuel-summary-steps", exactly("Spacecraft mass · +1"))
+      assert has_element?(view, "#fuel-pending:not([class*=hidden])")
+      refute has_element?(view, "#fuel-summary-steps")
 
-      change(view, mission(28_801, launch: :earth, land: nil))
-      assert has_element?(view, "#fuel-summary-steps", exactly("Step 2: planet"))
-
-      change(view, mission(28_801, [launch: :earth, land: :moon, launch: :moon] ++ [{nil, nil}]))
-      assert has_element?(view, "#fuel-summary-steps", exactly("Step 4: action and planet"))
+      change(view, mission(28_801, land: :earth))
+      refute has_element?(view, "#fuel-pending")
+      assert has_element?(view, "#fuel-summary-steps")
     end
   end
 

@@ -695,14 +695,14 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   @doc """
   Renders the mission's total fuel or, while the mission is invalid, what it still
-  lacks. Screen readers announce
-  the total whenever it changes. When steps can't follow the previous one, it says so,
-  since the total covers the steps as entered.
+  lacks. Screen readers announce the total whenever it changes. When steps can't follow
+  the previous one, it says so, since the total covers the steps as entered.
 
   On large screens it is a card with an aura that sticks to the top of its column, and
   breaks the total down by step; below that, the same element is a compact bar fixed to
-  the bottom of the screen, with the number of steps (or what is missing, or a warning)
-  in place of the icon, the description and the breakdown.
+  the bottom of the screen, with the number of steps (or a warning) in place of the
+  icon, the description and the breakdown. What is missing shows below the total on
+  every screen.
   """
   attr :fuel, :map,
     default: nil,
@@ -747,13 +747,13 @@ defmodule FuelCalculatorWeb.MissionComponents do
             <.icon name="hero-fire" class="size-8" />
           </div>
           <div
+            :if={@fuel}
             id="fuel-summary-steps"
             class="stat-figure max-w-40 text-end text-sm text-base-content/70 lg:hidden"
           >
             <%!-- One button for both labels, so its expanded state survives a new warning.
                  JS commands keep their changes across patches. --%>
             <.button
-              :if={@fuel}
               id="fuel-by-step-toggle"
               type="button"
               class="group btn btn-ghost btn-sm -me-2 gap-1 px-2 font-normal"
@@ -781,9 +781,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 class="size-4 transition-transform group-aria-expanded:rotate-180 motion-reduce:transition-none"
               />
             </.button>
-            <%= if is_nil(@fuel) do %>
-              {missing_label(@missing)}
-            <% end %>
           </div>
           <div class="stat-title text-base-content/70">Total fuel required</div>
           <div
@@ -883,20 +880,17 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   attr :missing, :list, required: true
 
-  # Only the first missing thing is spelled out, with a count of the others
+  # Only the next thing to fill in: the timeline is filled in order, so the others are
+  # still to come, or already in sight
   defp fuel_pending(assigns) do
     ~H"""
     <div
       id="fuel-pending"
-      class="stat-desc mt-1 text-sm whitespace-normal text-base-content/80 max-lg:hidden"
+      class="stat-desc mt-1 text-sm whitespace-normal text-base-content/80"
     >
       <%= case @missing do %>
-        <% [first | rest] -> %>
-          <p>
-            {missing_sentence(first)}<span :if={rest != []} class="text-base-content/60"> · {length(
-              rest
-            )} more</span>
-          </p>
+        <% [first | _rest] -> %>
+          <p>{missing_sentence(first)}</p>
         <% [] -> %>
           <p>Fix the errors in the flight path</p>
       <% end %>
@@ -913,16 +907,6 @@ defmodule FuelCalculatorWeb.MissionComponents do
 
   defp with_article(:action), do: "an action"
   defp with_article(:planet), do: "a planet"
-
-  defp missing_label([]), do: "Complete the mission"
-  defp missing_label([first]), do: short_missing(first)
-  defp missing_label([first | rest]), do: "#{short_missing(first)} · +#{length(rest)}"
-
-  defp short_missing(:first_step), do: "First step"
-  defp short_missing({:mass, _reason}), do: "Spacecraft mass"
-
-  defp short_missing({:step, index, fields}),
-    do: "Step #{index + 1}: #{Enum.map_join(fields, " and ", &Atom.to_string/1)}"
 
   # Steps are numbered from 1, so the previous step's number is this step's index
   defp warned_sentence([index]), do: "Step #{index + 1} can't follow step #{index}."
