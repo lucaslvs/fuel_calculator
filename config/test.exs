@@ -1,11 +1,17 @@
 import Config
 
-# We don't run a server during test. If one is required,
-# you can enable the server option below.
+# The server only runs for the browser tests: `mix test.browser` sets PHX_SERVER
+# (see runtime.exs)
 config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "6j5eL2XroTB9VDYJU0lup7mV+NyFeGVW3howf6gXvZhHsIgorKN4CR7/WlFeEN+7",
   server: false
+
+# Playwright is installed in test/browser, out of assets/, where Gigalixir's build
+# would install it too
+config :phoenix_test,
+  otp_app: :fuel_calculator,
+  playwright: [assets_dir: "test/browser"]
 
 # Print only warnings and errors during test
 config :logger, level: :warning

@@ -20,8 +20,12 @@ if System.get_env("PHX_SERVER") do
   config :fuel_calculator, FuelCalculatorWeb.Endpoint, server: true
 end
 
-config :fuel_calculator, FuelCalculatorWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+# Tests keep the port in test.exs, so the browser tests' server doesn't take the dev
+# server's port
+if config_env() != :test do
+  config :fuel_calculator, FuelCalculatorWeb.Endpoint,
+    http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+end
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.

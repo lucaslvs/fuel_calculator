@@ -40,6 +40,7 @@ tier, deployed automatically from `main` after CI passes).
 - Erlang/OTP 29.1.2 and Elixir 1.20.4 (pinned in `.tool-versions`; works with
   [mise](https://mise.jdx.dev) or [asdf](https://asdf-vm.com))
 - No database required
+- Node 20 or later, only for the browser tests
 
 ## Getting started
 
@@ -57,6 +58,17 @@ Then open [`localhost:4000`](http://localhost:4000).
 mix precommit     # compile --warnings-as-errors, format, credo --strict, test --cover
 mix test --cover  # test coverage (90% threshold, HTML report in cover/)
 mix dialyzer      # static type analysis
+```
+
+The browser tests run the page's JavaScript in Chromium through
+[Playwright](https://playwright.dev), so they need Node and are left out of
+`mix test`. Playwright is installed in `test/browser/`, out of `assets/`, so the
+production build doesn't install it:
+
+```sh
+npm ci --prefix test/browser
+test/browser/node_modules/.bin/playwright install chromium
+mix test.browser  # builds the assets and runs the tests tagged :e2e with the server on
 ```
 
 The same checks run on every push via GitHub Actions, and the build fails below
@@ -154,6 +166,10 @@ to what the app uses.
   - `live/mission_live_test.exs`: the page through `Phoenix.LiveViewTest`:
     examples, adding and removing steps, the total, the explanations, warnings
     and fixes, errors, focus and crafted events;
+  - `live/mission_browser_test.exs`: the JavaScript hooks in Chromium, which
+    `Phoenix.LiveViewTest` doesn't run: a quick fix shows the planet the fuel
+    is calculated with and focuses its field, and the mass field groups digits
+    while typing but keeps a sign or a decimal point for the server to reject;
   - the other files under `fuel_calculator_web/`: the security policy, request
     size limits, static files and error pages.
 - CI compiles with warnings as errors, runs Credo in strict mode, Dialyzer, the

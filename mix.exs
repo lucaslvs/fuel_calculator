@@ -43,7 +43,7 @@ defmodule FuelCalculator.MixProject do
 
   def cli do
     [
-      preferred_envs: [precommit: :test]
+      preferred_envs: [precommit: :test, "test.browser": :test]
     ]
   end
 
@@ -66,6 +66,7 @@ defmodule FuelCalculator.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.2.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
+      {:phoenix_test_playwright, "~> 0.19.0", only: :test, runtime: false},
       {:stream_data, "~> 1.4", only: [:dev, :test]},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},
@@ -114,7 +115,11 @@ defmodule FuelCalculator.MixProject do
         "format",
         "credo --strict",
         "test --cover"
-      ]
+      ],
+      # The server must be enabled before runtime.exs is read, so it comes first
+      "test.browser": [&serve_endpoint/1, "assets.build", "test --only e2e"]
     ]
   end
+
+  defp serve_endpoint(_args), do: System.put_env("PHX_SERVER", "true")
 end

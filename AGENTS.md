@@ -16,6 +16,13 @@ what the app does and why it is built the way it is.
 - `mix phx.server` — run the app at http://localhost:4000
 - `mix precommit` — compile (warnings as errors), unlock unused deps, format, `credo --strict`, `test --cover`
 - `mix dialyzer` — static type analysis (first run builds the PLT in `priv/plts/`)
+- `mix test.browser` — browser tests (tagged `:e2e`, left out of `mix test`) with
+  phoenix_test_playwright: it turns the endpoint's server on (port 4002), builds the
+  assets and runs Chromium. Needs `npm ci --prefix test/browser` and
+  `test/browser/node_modules/.bin/playwright install chromium` first; Playwright
+  lives in `test/browser/` because a `package.json` in `assets/` or the root would
+  change the Gigalixir build. Don't tag tests `:browser`: phoenix_test_playwright
+  reads module tags as its options, and `browser` is one
 - `mix test --cover` — tests with coverage; 90% threshold, generated Phoenix
   infrastructure is excluded via `test_coverage` in `mix.exs`
 
