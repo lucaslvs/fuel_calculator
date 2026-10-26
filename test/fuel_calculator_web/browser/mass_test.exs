@@ -10,6 +10,20 @@ defmodule FuelCalculatorWeb.Browser.MassTest do
     |> refute_has("#mission_mass-error")
   end
 
+  test "keeps the caret after the digit it typed", %{conn: conn} do
+    conn
+    |> type("#mission_mass", "28801")
+    |> assert_has("#mission_mass", value: "28,801")
+    |> move_caret(1)
+    |> type("#mission_mass", "5")
+    |> assert_has("#mission_mass", value: "258,801")
+    |> assert_caret(2)
+    # A comma appears before the caret
+    |> type("#mission_mass", "9")
+    |> assert_has("#mission_mass", value: "2,598,801")
+    |> assert_caret(4)
+  end
+
   # The digits on each side of a comma: the comma itself would come right back
   for {key, caret, shown, caret_after} <- [
         {"Delete", 2, "2,801", 3},

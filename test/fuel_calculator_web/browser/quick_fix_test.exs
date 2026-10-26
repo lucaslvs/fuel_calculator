@@ -7,6 +7,7 @@ defmodule FuelCalculatorWeb.Browser.QuickFixTest do
     |> select("Step 2 planet", option: "Earth")
     |> click_button("#fix-step-2", "Launch from Earth instead")
     |> assert_has("#step-2 [data-role=step-title]", text: "3 · Launch from Earth")
+    |> refute_has("#step-warning-2")
     |> assert_has("#mission_steps_2_planet:focus")
     |> assert_has("#mission_steps_2_planet", selected: "Earth")
     # The next change sends the form as the page shows it

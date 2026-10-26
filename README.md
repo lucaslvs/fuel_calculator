@@ -135,9 +135,11 @@ to what the app uses.
 
 - A single LiveView at `/` renders the calculator and needs no parameters.
 - Steps are added and removed through Ecto's `sort_param` and
-  `drop_param` with `<.inputs_for>`: the form params are the only state, and
-  the only custom JavaScript is a colocated hook that groups the mass digits as
-  they are typed.
+  `drop_param` with `<.inputs_for>`: the form params are the only state. The
+  custom JavaScript is three small colocated hooks: one groups the mass digits
+  as they are typed, one focuses the field a quick fix changes once the fix is
+  rendered, and one keeps the Launch and Land buttons from taking a double
+  click on Add step and closes them when the focus leaves.
 - The flight path is a regular assign, not a stream: it is a short list, and the
   total is recalculated over all of it on every change.
 - Change and submit share one event, so pressing Enter recalculates and shows
@@ -178,9 +180,12 @@ to what the app uses.
     and fixes, errors, focus and crafted events;
   - `browser/`: the page's JavaScript in Chromium, which `Phoenix.LiveViewTest`
     doesn't run (`BrowserCase` fails a test when the page logs an error, such
-    as one the security policy blocked): a quick fix shows the planet the fuel
-    is calculated with and focuses its field, and the mass field groups digits
-    while typing but keeps a sign or a decimal point for the server to reject;
+    as one the security policy blocked): building and editing the flight path
+    with the keyboard alone and where the focus goes, the mass field's digit
+    grouping and caret, a quick fix that shows the planet the fuel is
+    calculated with, an explanation that stays open while the mass changes,
+    and, on a phone, the fuel by step in the bottom bar and a new step that
+    stays clear of it;
   - the other files under `fuel_calculator_web/`: the security policy, request
     size limits, static files and error pages.
 - CI compiles with warnings as errors, runs Credo in strict mode, Dialyzer, the

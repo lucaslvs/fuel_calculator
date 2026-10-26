@@ -50,12 +50,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "[data-phx-theme]")
     end
 
-    test "groups the mass digits as they are typed", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
-
-      assert has_element?(view, "#mission_mass[type=text][phx-hook]")
-    end
-
     test "shows the mass unit and an example mass", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
@@ -260,7 +254,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#fuel-by-step")
     end
 
-    test "opens the fuel by step from the bar below lg", %{conn: conn} do
+    # The browser tests open it (phone_test.exs)
+    test "offers the fuel by step from a collapsed button below lg", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       refute has_element?(view, "#fuel-by-step-toggle")
@@ -271,18 +266,6 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
                view,
                "#fuel-by-step-toggle[aria-expanded=false][aria-controls=fuel-by-step-panel]"
              )
-
-      assert has_element?(view, "#fuel-by-step-panel.max-lg\\:hidden #fuel-by-step")
-
-      commands =
-        view
-        |> query("#fuel-by-step-toggle")
-        |> LazyHTML.attribute("phx-click")
-        |> hd()
-        |> JSON.decode!()
-
-      assert ["toggle_class", %{"names" => ["max-lg:hidden"], "to" => "#fuel-by-step-panel"}] in commands
-      assert ["toggle_attr", %{"attr" => ["aria-expanded", "true", "false"]}] in commands
     end
 
     test "tells how many steps the summary covers", %{conn: conn} do
@@ -583,13 +566,13 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
              )
     end
 
-    test "starts closed and keeps the open state the browser sets", %{conn: conn} do
+    # The browser tests keep one open while the mass changes (fuel_test.exs)
+    test "starts closed", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, land: :earth))
 
       refute has_element?(view, "#step-details-0[open]")
-      assert ["ignore_attrs", %{"attrs" => ["open"]}] in mounted_js(view, "#step-details-0")
     end
 
     test "names each step for screen readers", %{conn: conn} do
@@ -1034,7 +1017,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
   end
 
   # The LiveViewTest doesn't run JS commands, so these check the commands each element
-  # carries; the focus itself was checked in a browser
+  # carries; the browser tests check the focus itself (flight_path_test.exs)
   describe "focus" do
     test "moves to the planet of the step added with Add step, once", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
@@ -1122,19 +1105,13 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       refute has_element?(view, "#steps > li[phx-mounted]")
     end
 
-    test "opens the actions in place of Add step", %{conn: conn} do
+    # The browser tests open and close them (flight_path_test.exs)
+    test "names the actions after Add step", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, %{"mass" => "28801"})
 
       assert has_element?(view, "#add-step-actions[role=group][aria-label='Add step']")
-      assert has_element?(view, "#add-step-actions[phx-click-away]")
-      assert has_element?(view, "#add-step-launch[phx-key=Escape][phx-keydown]")
-
-      js = view |> query("#add-step") |> LazyHTML.attribute("phx-click") |> hd() |> JSON.decode!()
-
-      assert ["set_attr", %{"to" => "#add-step-item", "attr" => ["data-open", ""]}] in js
-      assert ["focus_first", %{"to" => "#add-step-actions"}] in js
     end
 
     # On the title's line, so it never wraps alone below the action and the planet
