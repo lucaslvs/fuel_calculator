@@ -112,9 +112,52 @@ jobs:
 
       - run: mix dialyzer --format github
 
+  # The page's JS hooks in a real browser (see mission_browser_test.exs)
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MIX_ENV: test
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Restore deps and _build cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: test/browser/package-lock.json
+
+      # The browser isn't cached: Playwright's CI docs note that restoring it takes about
+      # as long as downloading it
+      - run: npm ci --prefix test/browser
+      - run: test/browser/node_modules/.bin/playwright install chromium --with-deps --only-shell
+
+      - run: mix deps.get
+      - run: mix assets.setup
+      - run: mix test.browser
+
   deploy:
     name: Deploy
-    needs: test
+    needs: [test, browser]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20

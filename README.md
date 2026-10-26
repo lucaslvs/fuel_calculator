@@ -75,7 +75,8 @@ The same checks run on every push via GitHub Actions, and the build fails below
 90% coverage. The workflow also publishes a per-module coverage summary, updates
 the coverage badge, lints itself with [actionlint](https://github.com/rhysd/actionlint)
 and fails when a Hex dependency is retired or has a security advisory
-(`mix hex.audit`).
+(`mix hex.audit`). The browser tests run in a job of their own, and the deploy
+waits for both.
 
 ## Project structure
 

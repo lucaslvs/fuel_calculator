@@ -26,9 +26,9 @@ what the app does and why it is built the way it is.
 - `mix test --cover` — tests with coverage; 90% threshold, generated Phoenix
   infrastructure is excluded via `test_coverage` in `mix.exs`
 
-CI (`.github/workflows/ci.yml`) runs the same checks plus actionlint, `mix hex.audit`
-and Dialyzer on pushes and pull requests, except when only `*.md`, `docs/` or
-`.mcp.json` change. The build fails below 90% coverage; the per-module summary
+CI (`.github/workflows/ci.yml`) runs the same checks plus actionlint, `mix hex.audit`,
+Dialyzer and, in a job of its own, the browser tests on pushes and pull requests,
+except when only `*.md`, `docs/` or `.mcp.json` change. The build fails below 90% coverage; the per-module summary
 goes to the job summary and, on `main`, the README badge.
 
 In development, a Tidewave MCP server is available at http://localhost:4000/tidewave/mcp
