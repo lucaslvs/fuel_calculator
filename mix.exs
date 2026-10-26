@@ -21,12 +21,18 @@ defmodule FuelCalculator.MixProject do
           FuelCalculatorWeb.Gettext,
           FuelCalculatorWeb.Layouts,
           FuelCalculatorWeb.Telemetry,
-          FuelCalculatorWeb.ConnCase
+          FuelCalculatorWeb.ConnCase,
+          # Only `mix test.browser` runs it
+          FuelCalculatorWeb.BrowserCase
         ]
       ],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/project.plt"},
-        plt_add_apps: [:mix, :ex_unit]
+        # In test, Dialyzer also checks test/support, where BrowserCase calls the
+        # browser test dependencies
+        plt_add_apps:
+          [:mix, :ex_unit] ++
+            if(Mix.env() == :test, do: [:phoenix_test, :playwright_ex], else: [])
       ]
     ]
   end

@@ -14,6 +14,10 @@ config :phoenix_test,
   otp_app: :fuel_calculator,
   playwright: [
     assets_dir: "test/browser",
+    # Without the fade-ins, nothing is mid-animation when a test acts or asserts:
+    # Playwright waits for a click target to stop moving, but not for the rest. A
+    # test that sets browser_context_opts replaces this
+    browser_context_opts: [reduced_motion: "reduce"],
     trace: System.get_env("PW_TRACE") == "true",
     trace_dir: "tmp/traces"
   ]

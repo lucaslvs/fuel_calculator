@@ -112,7 +112,7 @@ jobs:
 
       - run: mix dialyzer --format github
 
-  # The page's JS hooks in a real browser (see mission_browser_test.exs)
+  # The page's JavaScript in a real browser (see test/fuel_calculator_web/browser/)
   browser:
     name: Browser tests
     runs-on: ubuntu-24.04

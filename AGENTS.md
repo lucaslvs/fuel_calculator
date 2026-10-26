@@ -21,10 +21,13 @@ what the app does and why it is built the way it is.
   assets and runs Chromium. Needs `npm ci --prefix test/browser` and
   `test/browser/node_modules/.bin/playwright install chromium` first; Playwright
   lives in `test/browser/` because a `package.json` in `assets/` or the root would
-  change the Gigalixir build. Don't tag tests `:browser`: phoenix_test_playwright
-  reads module tags as its options, and `browser` is one
+  change the Gigalixir build. Browser tests live in `test/fuel_calculator_web/browser/`
+  and `use FuelCalculatorWeb.BrowserCase`, which tags them, opens `/` connected and
+  fails a test when the page logs an error. Don't tag tests `:browser`:
+  phoenix_test_playwright reads module tags as its options, and `browser` is one.
+  `PW_TRACE=true mix test.browser --failed` reruns failures with a trace in `tmp/traces`
 - `mix test --cover` — tests with coverage; 90% threshold, generated Phoenix
-  infrastructure is excluded via `test_coverage` in `mix.exs`
+  infrastructure and the test cases are excluded via `test_coverage` in `mix.exs`
 
 CI (`.github/workflows/ci.yml`) runs the same checks plus actionlint, `mix hex.audit`,
 Dialyzer and, in a job of its own, the browser tests on pushes and pull requests,

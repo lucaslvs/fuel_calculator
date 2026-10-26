@@ -173,8 +173,9 @@ to what the app uses.
   - `live/mission_live_test.exs`: the page through `Phoenix.LiveViewTest`:
     examples, adding and removing steps, the total, the explanations, warnings
     and fixes, errors, focus and crafted events;
-  - `live/mission_browser_test.exs`: the JavaScript hooks in Chromium, which
-    `Phoenix.LiveViewTest` doesn't run: a quick fix shows the planet the fuel
+  - `browser/`: the page's JavaScript in Chromium, which `Phoenix.LiveViewTest`
+    doesn't run (`BrowserCase` fails a test when the page logs an error, such
+    as one the security policy blocked): a quick fix shows the planet the fuel
     is calculated with and focuses its field, and the mass field groups digits
     while typing but keeps a sign or a decimal point for the server to reject;
   - the other files under `fuel_calculator_web/`: the security policy, request

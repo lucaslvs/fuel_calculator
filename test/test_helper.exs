@@ -1,5 +1,6 @@
-# The browser tests need Node, Playwright's Chromium and the endpoint's server, so
-# they only run with `mix test.browser`
+# The browser tests (FuelCalculatorWeb.BrowserCase, tagged :e2e) need Node,
+# Playwright's Chromium and the endpoint's server, so they only run with
+# `mix test.browser`
 ExUnit.start(exclude: [:e2e])
 
 if :e2e in ExUnit.configuration()[:include] do
