@@ -62,8 +62,8 @@ mix dialyzer      # static type analysis
 
 The browser tests run the page's JavaScript in Chromium through
 [Playwright](https://playwright.dev), so they need Node and are left out of
-`mix test`. Playwright is installed in `test/browser/`, out of `assets/`, so the
-production build doesn't install it:
+`mix test`. Playwright and axe-core are installed in `test/browser/`, out of
+`assets/`, so the production build doesn't install them:
 
 ```sh
 npm ci --prefix test/browser
@@ -185,7 +185,9 @@ to what the app uses.
     grouping and caret, a quick fix that shows the planet the fuel is
     calculated with, an explanation that stays open while the mass changes,
     and, on a phone, the fuel by step in the bottom bar and a new step that
-    stays clear of it;
+    stays clear of it. [axe-core](https://github.com/dequelabs/axe-core) checks
+    the page against WCAG 2.2 A and AA in its main states, on a desktop and on
+    a phone;
   - the other files under `fuel_calculator_web/`: the security policy, request
     size limits, static files and error pages.
 - CI compiles with warnings as errors, runs Credo in strict mode, Dialyzer, the
