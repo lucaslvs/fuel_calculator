@@ -28,6 +28,20 @@ defmodule FuelCalculatorWeb.Browser.FlightPathTest do
     |> assert_has("#mission_steps_0_action_land:checked")
   end
 
+  test "closes the actions when the focus leaves them", %{conn: conn} do
+    conn
+    |> press("#add-step", "Enter")
+    |> assert_has("#add-step-launch:focus")
+    |> press("#add-step-launch", "Tab")
+    |> assert_has("#add-step-land:focus")
+    |> assert_has("#add-step-actions")
+    |> press("#add-step-land", "Shift+Tab")
+    |> press("#add-step-launch", "Shift+Tab")
+    |> assert_has("#mission_mass:focus")
+    |> refute_has("#add-step-actions")
+    |> assert_has("#add-step")
+  end
+
   defp double_click(conn, selector, position) do
     unwrap(conn, fn %{frame_id: frame_id} ->
       {:ok, _} =

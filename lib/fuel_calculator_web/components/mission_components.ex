@@ -307,14 +307,22 @@ defmodule FuelCalculatorWeb.MissionComponents do
                 </div>
               </div>
               <script :type={Phoenix.LiveView.ColocatedHook} name=".AddStep">
-                // The actions open under the pointer that clicked Add step, so the second
-                // click of a double click would land on one and add a step. LiveView
-                // handles clicks on the window, so a click stopped here does nothing;
-                // the keyboard's clicks have a detail of 0
                 export default {
                   mounted() {
+                    // The actions open under the pointer that clicked Add step, so the
+                    // second click of a double click would land on one and add a step.
+                    // LiveView handles clicks on the window, so a click stopped here does
+                    // nothing; the keyboard's clicks have a detail of 0
                     this.el.addEventListener("click", e => {
                       if (e.detail > 1) e.stopPropagation()
+                    })
+                    // The focus moving to another element, as with Tab, closes the actions
+                    // like a click elsewhere does. Focus that goes nowhere leaves them
+                    // open: Safari drops it on a click on a button, before the click
+                    this.el.addEventListener("focusout", e => {
+                      if (e.relatedTarget && !this.el.contains(e.relatedTarget)) {
+                        this.js().removeAttribute(this.el, "data-open")
+                      }
                     })
                   }
                 }
