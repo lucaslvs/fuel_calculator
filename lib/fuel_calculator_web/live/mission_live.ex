@@ -273,12 +273,14 @@ defmodule FuelCalculatorWeb.MissionLive do
                     <:suffix>kg</:suffix>
                   </.input>
                   <script :type={Phoenix.LiveView.ColocatedHook} name=".GroupDigits">
-                    // Keeps only the digits, grouped with commas, and the caret after the
-                    // same digit it followed
+                    // Groups the digits with commas and keeps the caret after the same
+                    // digit it followed. A value with anything else, such as a sign or a
+                    // decimal point, is left as typed for the server to reject.
                     export default {
                       mounted() {
                         this.el.addEventListener("input", () => {
                           const el = this.el
+                          if (!/^[\d,]*$/.test(el.value)) return
                           const before = el.value.slice(0, el.selectionStart).replace(/\D/g, "").length
                           el.value = el.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                           let caret = 0

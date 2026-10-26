@@ -46,7 +46,7 @@ defmodule FuelCalculator.MissionTest do
 
     test "must be an integer" do
       for mass <- ["abc", "1.5", "1e3"] do
-        assert errors_on(cast(%{"mass" => mass})) == %{mass: ["is invalid"]}
+        assert errors_on(cast(%{"mass" => mass})) == %{mass: ["must be a whole number"]}
       end
     end
 

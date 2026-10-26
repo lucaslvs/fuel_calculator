@@ -120,14 +120,20 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", exactly("13,447 kg"))
     end
 
-    for mass <- ["12a", "1.5", "-1", "1000000000000000"] do
-      test "shows the invalid mass #{mass} as it was typed", %{conn: conn} do
+    for {mass, error} <- [
+          {"12a", "must be a whole number"},
+          {"28801.5", "must be a whole number"},
+          {"-28801", "must be greater than 0"},
+          {"1000000000000000", "must be less than or equal to 1000000000000"}
+        ] do
+      test "shows the invalid mass #{mass} as it was typed, with its error", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
 
         change(view, mission(unquote(mass), land: :earth))
 
         assert has_element?(view, "#mission_mass[value='#{unquote(mass)}']")
         assert has_element?(view, ".input-error #mission_mass")
+        assert has_element?(view, "#mission_mass-error", exactly(unquote(error)))
       end
     end
   end

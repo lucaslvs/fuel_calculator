@@ -43,7 +43,7 @@ defmodule FuelCalculator.Mission do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(mission, attrs) do
     mission
-    |> cast(attrs, [:mass])
+    |> cast(attrs, [:mass], message: fn :mass, _meta -> "must be a whole number" end)
     |> validate_required([:mass])
     |> validate_number(:mass, greater_than: 0, less_than_or_equal_to: @max_mass)
     |> cast_steps()
