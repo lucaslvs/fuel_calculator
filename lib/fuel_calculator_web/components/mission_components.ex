@@ -513,16 +513,27 @@ defmodule FuelCalculatorWeb.MissionComponents do
           :if={@fix}
           id={"fix-step-#{@step.index}"}
           type="button"
-          phx-click={
-            "fix_step"
-            |> JS.push(value: %{index: "#{@step.index}"})
-            |> JS.focus(to: fixed_field(@warning, @fix, @step))
-          }
+          phx-hook=".FixStep"
+          data-index={@step.index}
+          data-focus={fixed_field(@warning, @fix, @step)}
           class="btn btn-xs btn-warning"
         >
           <.icon name="hero-wrench-screwdriver-micro" class="size-3.5" />
           {fix_label(@fix)}
         </.button>
+        <script :type={Phoenix.LiveView.ColocatedHook} name=".FixStep">
+          // Focuses the field once the fix is rendered: LiveView doesn't patch the value
+          // of a focused select, which would show the old planet and send it back on the
+          // next change
+          export default {
+            mounted() {
+              this.el.addEventListener("click", () => {
+                const {index, focus} = this.el.dataset
+                this.pushEvent("fix_step", {index}, () => document.querySelector(focus)?.focus())
+              })
+            }
+          }
+        </script>
       </div>
     </div>
     """

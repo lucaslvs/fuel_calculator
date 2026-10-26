@@ -867,7 +867,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       {:ok, view, _html} = live(conn, ~p"/")
 
       change(view, mission(28_801, launch: :earth, land: :moon, launch: :mars, land: :earth))
-      view |> element("#fix-step-2") |> render_click()
+      fix_step(view, "#fix-step-2")
 
       assert has_element?(
                view,
@@ -879,7 +879,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
       assert has_element?(view, "#total-fuel", exactly("51,898 kg"))
 
       change(view, mission(28_801, launch: :earth, land: :moon, land: :earth))
-      view |> element("#fix-step-2") |> render_click()
+      fix_step(view, "#fix-step-2")
 
       assert has_element?(
                view,
@@ -893,8 +893,8 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       change(view, mission(28_801, @inconsistent_path))
 
-      assert focus_target(view, "#fix-step-2") == "#mission_steps_2_planet"
-      assert focus_target(view, "#fix-step-4") == "#mission_steps_4_action_launch"
+      assert fix_focus(view, "#fix-step-2") == "#mission_steps_2_planet"
+      assert fix_focus(view, "#fix-step-4") == "#mission_steps_4_action_launch"
     end
 
     test "keeps the rest of the mission as it is", %{conn: conn} do
@@ -908,7 +908,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
 
       assert has_element?(view, "#step-2")
 
-      view |> element("#fix-step-1") |> render_click()
+      fix_step(view, "#fix-step-1")
 
       assert has_element?(view, "#step-1 [data-role=step-title]", exactly("2 · Land on the Moon"))
       assert has_element?(view, "#mission_mass[value=abc]")
@@ -1390,6 +1390,16 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     |> JSON.decode!()
     |> Enum.find_value(fn [kind, args] -> if kind == "focus", do: args["to"] end)
   end
+
+  # The fix button's hook pushes fix_step with its data-index and, once the fix is
+  # rendered, focuses its data-focus
+  defp fix_step(view, button) do
+    [index] = view |> query(button) |> LazyHTML.attribute("data-index")
+    view |> element(button) |> render_hook("fix_step", %{"index" => index})
+  end
+
+  defp fix_focus(view, button),
+    do: view |> query(button) |> LazyHTML.attribute("data-focus") |> hd()
 
   defp mounted_js(view, selector) do
     view
