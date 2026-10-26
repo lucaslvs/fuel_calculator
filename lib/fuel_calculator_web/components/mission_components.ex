@@ -212,6 +212,7 @@ defmodule FuelCalculatorWeb.MissionComponents do
               id="add-step-item"
               class="group/add w-full [--timeline-row-start:0] motion-safe:animate-fade-in"
               role="none"
+              phx-hook=".AddStep"
             >
               <hr class="bg-base-300" aria-hidden="true" />
               <div class="timeline-middle">
@@ -305,6 +306,19 @@ defmodule FuelCalculatorWeb.MissionComponents do
                   </p>
                 </div>
               </div>
+              <script :type={Phoenix.LiveView.ColocatedHook} name=".AddStep">
+                // The actions open under the pointer that clicked Add step, so the second
+                // click of a double click would land on one and add a step. LiveView
+                // handles clicks on the window, so a click stopped here does nothing;
+                // the keyboard's clicks have a detail of 0
+                export default {
+                  mounted() {
+                    this.el.addEventListener("click", e => {
+                      if (e.detail > 1) e.stopPropagation()
+                    })
+                  }
+                }
+              </script>
             </li>
           </ul>
         </div>
