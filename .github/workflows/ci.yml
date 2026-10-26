@@ -146,14 +146,34 @@ jobs:
           cache: npm
           cache-dependency-path: test/browser/package-lock.json
 
-      # The browser isn't cached: Playwright's CI docs note that restoring it takes about
-      # as long as downloading it
       - run: npm ci --prefix test/browser
-      - run: test/browser/node_modules/.bin/playwright install chromium --with-deps --only-shell
+
+      # No --with-deps: the runner image already has Chromium's libraries (they come with
+      # its Google Chrome), so apt would only add fonts, and its mirror can take minutes
+      # (actions/runner-images#14823). A missing library fails the browser launch with
+      # Playwright's "Host system is missing dependencies" and the list. The browser isn't
+      # cached: Playwright's CI docs note that restoring it takes about as long as
+      # downloading it
+      - run: test/browser/node_modules/.bin/playwright install chromium --only-shell
+        timeout-minutes: 3
 
       - run: mix deps.get
-      - run: mix assets.setup
-      - run: mix test.browser
+
+      # Tailwind and esbuild install themselves on the first assets.build. Every test
+      # records a trace, so the first failure is kept, even one a rerun would pass
+      - name: Run browser tests
+        env:
+          PW_TRACE: "true"
+        run: mix test.browser
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: tmp/traces
+          if-no-files-found: ignore
+          retention-days: 7
 
   deploy:
     name: Deploy

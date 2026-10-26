@@ -69,7 +69,13 @@ production build doesn't install it:
 npm ci --prefix test/browser
 test/browser/node_modules/.bin/playwright install chromium
 mix test.browser  # builds the assets and runs the tests tagged :e2e with the server on
+PW_TRACE=true mix test.browser --failed  # reruns the failures with a trace in tmp/traces
 ```
+
+A trace replays the test step by step, with the page at each step:
+`test/browser/node_modules/.bin/playwright show-trace tmp/traces/<file>.zip`. In CI
+every browser test records one, and the traces of a failed run are uploaded as an
+artifact.
 
 The same checks run on every push via GitHub Actions, and the build fails below
 90% coverage. The workflow also publishes a per-module coverage summary, updates

@@ -8,10 +8,15 @@ config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   server: false
 
 # Playwright is installed in test/browser, out of assets/, where Gigalixir's build
-# would install it too
+# would install it too. PW_TRACE=true records a trace of every test in tmp/traces
+# (open one with `test/browser/node_modules/.bin/playwright show-trace <zip>`)
 config :phoenix_test,
   otp_app: :fuel_calculator,
-  playwright: [assets_dir: "test/browser"]
+  playwright: [
+    assets_dir: "test/browser",
+    trace: System.get_env("PW_TRACE") == "true",
+    trace_dir: "tmp/traces"
+  ]
 
 # Print only warnings and errors during test
 config :logger, level: :warning
