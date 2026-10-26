@@ -91,7 +91,7 @@ waits for both.
 | [`FuelCalculator.Planet`](lib/fuel_calculator/planet.ex) | The supported planets and their gravity |
 | [`FuelCalculator.Fuel`](lib/fuel_calculator/fuel.ex) | The launch and landing formulas, the fuel for the fuel, and each step's iterations |
 | [`FuelCalculator.FlightPath`](lib/fuel_calculator/flight_path.ex) | Warnings for steps that can't follow the previous one, and their fixes |
-| [`FuelCalculator.Mission`](lib/fuel_calculator/mission.ex), [`Mission.Step`](lib/fuel_calculator/mission/step.ex) | Validate the form input and calculate the mission's fuel |
+| [`FuelCalculator.Mission`](lib/fuel_calculator/mission.ex), [`Mission.Step`](lib/fuel_calculator/mission/step.ex), [`Mission.Mass`](lib/fuel_calculator/mission/mass.ex) | Validate the form input and calculate the mission's fuel |
 | [`FuelCalculatorWeb.MissionLive`](lib/fuel_calculator_web/live/mission_live.ex) | The page at `/`: form events, example missions, recalculation on every change |
 | [`FuelCalculatorWeb.MissionComponents`](lib/fuel_calculator_web/components/mission_components.ex) | Example cards, flight path timeline, step rows and fuel summary |
 | [`FuelCalculatorWeb.ErrorHTML`](lib/fuel_calculator_web/controllers/error_html.ex) | 404 and 500 pages in the app's look |
@@ -120,6 +120,9 @@ to what the app uses.
   changesets; there is no database.
 - Actions and planets are `Ecto.Enum` fields, so form input is cast to known
   atoms and never converted with `String.to_atom/1`.
+- The mass is a custom Ecto type, `Mission.Mass`, that casts digits grouped
+  with commas, as the field shows them. The changeset keeps the text, so an
+  invalid mass is shown back exactly as it was typed.
 - An empty flight path is valid and needs 0 kg of fuel, though the page asks for
   a first step instead of showing that total. New steps start with the action
   they were added with and no planet, so a step without a planet shows an error

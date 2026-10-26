@@ -44,8 +44,16 @@ defmodule FuelCalculator.MissionTest do
       assert errors_on(cast(%{"mass" => ""})) == %{mass: ["can't be blank"]}
     end
 
+    test "may group its digits with commas" do
+      changeset = cast(%{"mass" => "1,000,000"})
+
+      assert Ecto.Changeset.get_field(changeset, :mass) == 1_000_000
+      # The text as given, for a form to show
+      assert changeset.params["mass"] == "1,000,000"
+    end
+
     test "must be an integer" do
-      for mass <- ["abc", "1.5", "1e3"] do
+      for mass <- ["abc", "1.5", "1,000.5", "1e3"] do
         assert errors_on(cast(%{"mass" => mass})) == %{mass: ["must be a whole number"]}
       end
     end

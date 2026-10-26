@@ -99,9 +99,7 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     for {mass, shown} <- [
           {"28801", "28,801"},
           {"28,801", "28,801"},
-          {"1000000000000", "1,000,000,000,000"},
-          # Past the largest mass, so invalid, but grouped still
-          {"999999999999999", "999,999,999,999,999"}
+          {"1000000000000", "1,000,000,000,000"}
         ] do
       test "shows #{mass} with its digits grouped", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")
@@ -123,8 +121,11 @@ defmodule FuelCalculatorWeb.MissionLiveTest do
     for {mass, error} <- [
           {"12a", "must be a whole number"},
           {"28801.5", "must be a whole number"},
+          {"28,801.5", "must be a whole number"},
           {"-28801", "must be greater than 0"},
-          {"1000000000000000", "must be less than or equal to 1000000000000"}
+          {"-28,801", "must be greater than 0"},
+          {"1000000000000000", "must be less than or equal to 1000000000000"},
+          {"1,000,000,000,001", "must be less than or equal to 1000000000000"}
         ] do
       test "shows the invalid mass #{mass} as it was typed, with its error", %{conn: conn} do
         {:ok, view, _html} = live(conn, ~p"/")

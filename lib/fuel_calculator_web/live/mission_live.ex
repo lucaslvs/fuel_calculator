@@ -103,12 +103,10 @@ defmodule FuelCalculatorWeb.MissionLive do
   end
 
   # Form inputs render their params back, which only works for the strings the form
-  # sends, so a crafted event's other values are dropped. The mass field groups its
-  # digits with commas, which are dropped before the mass is cast.
+  # sends, so a crafted event's other values are dropped
   defp form_params(params) do
     params
     |> strings_only(~w(steps steps_sort steps_drop))
-    |> Map.replace_lazy("mass", &String.replace(&1, ",", ""))
     |> Map.replace_lazy("steps", &form_steps/1)
   end
 
@@ -202,12 +200,10 @@ defmodule FuelCalculatorWeb.MissionLive do
     end)
   end
 
-  # The mass field shows its digits grouped, as its hook does while typing. A value that
-  # isn't cast to an integer is shown as it was typed. Grouping takes time quadratic in
-  # the digits (10,000 take over a second), so a mass far beyond the largest, invalid
-  # anyway, is shown as it is.
-  defp grouped_mass(mass) when mass in 0..999_999_999_999_999//1, do: format_number(mass)
-  defp grouped_mass(mass), do: mass
+  # The mass field shows a valid mass with its digits grouped, as its hook does while
+  # typing, and anything else as it was typed, commas included
+  defp shown_mass(nil, form), do: form.params["mass"]
+  defp shown_mass(mass, _form), do: format_number(mass)
 
   defp valid_mass(changeset) do
     if Keyword.has_key?(changeset.errors, :mass),
@@ -258,7 +254,7 @@ defmodule FuelCalculatorWeb.MissionLive do
                        spares the hook's grouping, quadratic in the digits, a huge paste. --%>
                   <.input
                     field={@form[:mass]}
-                    value={grouped_mass(@form[:mass].value)}
+                    value={shown_mass(@mass, @form)}
                     type="text"
                     label="Spacecraft mass"
                     label_class="mb-1 block text-sm font-semibold"

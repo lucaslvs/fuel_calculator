@@ -38,6 +38,15 @@ defmodule FuelCalculatorWeb.Browser.MassTest do
     end
   end
 
+  # Before the debounce, so the page shows the server's render of the field
+  test "keeps an invalid mass as typed when leaving the field at once", %{conn: conn} do
+    conn
+    |> type("#mission_mass", "28801.5")
+    |> press("#mission_mass", "Tab")
+    |> assert_has("#mission_mass-error", text: "must be a whole number")
+    |> assert_has("#mission_mass", value: "28,801.5")
+  end
+
   defp move_caret(conn, at) do
     evaluate(conn, "document.getElementById('mission_mass').setSelectionRange(#{at}, #{at})")
   end

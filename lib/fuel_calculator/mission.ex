@@ -11,6 +11,7 @@ defmodule FuelCalculator.Mission do
   import Ecto.Changeset
 
   alias FuelCalculator.Fuel
+  alias FuelCalculator.Mission.Mass
   alias FuelCalculator.Mission.Step
   alias FuelCalculator.Planet
 
@@ -30,12 +31,13 @@ defmodule FuelCalculator.Mission do
 
   @primary_key false
   embedded_schema do
-    field :mass, :integer
+    field :mass, Mass
     embeds_many :steps, Step, on_replace: :delete
   end
 
   @doc """
-  Casts and validates the mass and the flight path steps of a mission.
+  Casts and validates the mass and the flight path steps of a mission. The mass
+  may group its digits with commas.
 
   An empty flight path is valid and requires no fuel. A flight path has at most
   `max_steps/0` steps.
