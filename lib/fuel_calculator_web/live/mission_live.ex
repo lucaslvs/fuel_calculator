@@ -278,9 +278,32 @@ defmodule FuelCalculatorWeb.MissionLive do
                     // decimal point, is left as typed for the server to reject.
                     export default {
                       mounted() {
+                        // Delete and Backspace next to a comma delete the digit past it:
+                        // the comma alone would come right back. Safari deletes where the
+                        // caret was even if it moves first, so the digit goes once the
+                        // comma has, at this offset from the caret
+                        this.el.addEventListener("beforeinput", e => {
+                          const el = this.el
+                          const at = el.selectionStart
+                          const caret = at === el.selectionEnd
+                          if (caret && e.inputType === "deleteContentForward" && el.value[at] === ",") {
+                            this.pastComma = 0
+                          } else if (caret && e.inputType === "deleteContentBackward" && el.value[at - 1] === ",") {
+                            this.pastComma = -1
+                          } else {
+                            this.pastComma = null
+                          }
+                        })
                         this.el.addEventListener("input", () => {
                           const el = this.el
+                          const pastComma = this.pastComma
+                          this.pastComma = null
                           if (!/^[\d,]*$/.test(el.value)) return
+                          if (pastComma != null) {
+                            const at = el.selectionStart + pastComma
+                            el.value = el.value.slice(0, at) + el.value.slice(at + 1)
+                            el.setSelectionRange(at, at)
+                          }
                           const before = el.value.slice(0, el.selectionStart).replace(/\D/g, "").length
                           el.value = el.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                           let caret = 0
